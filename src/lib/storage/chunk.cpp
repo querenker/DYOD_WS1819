@@ -19,12 +19,14 @@ void Chunk::add_segment(std::shared_ptr<BaseSegment> segment) {
 }
 
 void Chunk::append(const std::vector<AllTypeVariant>& values) {
-  // in step 5
+  DebugAssert(values.size() == _segments.size(), "wrong number of items in passed row");
+  for(size_t column_index = 0; column_index < values.size(); column_index++) {
+    _segments[column_index]->append(values[column_index]);
+  }
 }
 
 std::shared_ptr<BaseSegment> Chunk::get_segment(ColumnID column_id) const {
-  // Implementation goes here
-  return nullptr;
+  return _segments[column_id];
 }
 
 uint16_t Chunk::column_count() const {
