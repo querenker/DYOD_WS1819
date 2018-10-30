@@ -46,6 +46,5 @@ class StorageManager : private Noncopyable {
 
   // mapping from table names to table object pointers
   std::unordered_map<std::string, std::shared_ptr<Table>> _tables;
-
 };
 }  // namespace opossum

@@ -23,8 +23,8 @@ Table::Table(const uint32_t chunk_size) : _chunk_size(chunk_size) {
 
 void Table::add_new_chunk() {
   auto chunk = std::make_shared<Chunk>();
-  for(auto &column : _columns) {
-    auto new_segment = make_shared_by_data_type<BaseSegment, ValueSegment>(column.second); 
+  for (auto &column : _columns) {
+    auto new_segment = make_shared_by_data_type<BaseSegment, ValueSegment>(column.second);
     chunk->add_segment(new_segment);
   }
   _chunks.push_back(chunk);
@@ -39,7 +39,7 @@ void Table::add_column(const std::string& name, const std::string& type) {
 
 void Table::append(std::vector<AllTypeVariant> values) {
   DebugAssert(_chunks.back()->size() <= _chunk_size, "chunk contains more values than allowed");
-  if(_chunks.back()->size() == _chunk_size) {
+  if (_chunks.back()->size() == _chunk_size) {
     add_new_chunk();
   }
   _chunks.back()->append(values);
@@ -63,7 +63,7 @@ ColumnID Table::column_id_by_name(const std::string& column_name) const {
   auto column_iter = find_if(_columns.begin(), _columns.end(), [&column_name](auto &column){
     return column.first.compare(column_name) == 0;
   });
-  if(column_iter == _columns.end()) {
+  if (column_iter == _columns.end()) {
     throw std::runtime_error("no column with this name " + column_name);
   }
   return ColumnID(std::distance(_columns.begin(), column_iter));

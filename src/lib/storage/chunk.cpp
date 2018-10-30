@@ -20,7 +20,7 @@ void Chunk::add_segment(std::shared_ptr<BaseSegment> segment) {
 
 void Chunk::append(const std::vector<AllTypeVariant>& values) {
   DebugAssert(values.size() == _segments.size(), "wrong number of items in passed row");
-  for(size_t column_index = 0; column_index < values.size(); column_index++) {
+  for (size_t column_index = 0; column_index < values.size(); column_index++) {
     _segments[column_index]->append(values[column_index]);
   }
 }

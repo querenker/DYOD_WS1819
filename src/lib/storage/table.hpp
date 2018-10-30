@@ -78,7 +78,7 @@ class Table : private Noncopyable {
  protected:
   // list of all chunks
   std::vector<std::shared_ptr<Chunk>> _chunks;
-  
+
   // maximum size of one chunk
   uint32_t _chunk_size;
 
