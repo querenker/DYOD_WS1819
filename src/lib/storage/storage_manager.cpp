@@ -34,20 +34,16 @@ std::shared_ptr<Table> StorageManager::get_table(const std::string& name) const 
   return _tables.at(name);
 }
 
-bool StorageManager::has_table(const std::string& name) const {
-  return _tables.find(name) != _tables.end();
-}
+bool StorageManager::has_table(const std::string& name) const { return _tables.find(name) != _tables.end(); }
 
 std::vector<std::string> StorageManager::table_names() const {
   auto table_names = std::vector<std::string>(_tables.size());
-  std::transform(_tables.begin(), _tables.end(), table_names.begin(), [](auto value_pair){
-    return value_pair.first;
-  });
+  std::transform(_tables.begin(), _tables.end(), table_names.begin(), [](auto value_pair) { return value_pair.first; });
   return table_names;
 }
 
 void StorageManager::print(std::ostream& out) const {
-  for (auto &table_pair : _tables) {
+  for (auto& table_pair : _tables) {
     auto table_name = table_pair.first;
     auto column_count = table_pair.second->column_count();
     auto row_count = table_pair.second->row_count();
@@ -56,8 +52,6 @@ void StorageManager::print(std::ostream& out) const {
   }
 }
 
-void StorageManager::reset() {
-  _tables.clear();
-}
+void StorageManager::reset() { _tables.clear(); }
 
 }  // namespace opossum
