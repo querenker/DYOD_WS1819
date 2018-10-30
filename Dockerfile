@@ -1,4 +1,4 @@
-FROM ubuntu:16.04
+FROM ubuntu:18.04
 MAINTAINER Mirko Krause <mirko.krause@student.hpi.de>
 
 RUN mkdir /project
@@ -15,8 +15,8 @@ RUN apt-get update \
 	&& add-apt-repository -y ppa:git-core/ppa \
 	&& apt-get update \
 	&& apt-get install -y git \
-	&& chmod +x install.sh #\
-	&& ./install.sh \
+	&& chmod +x install.sh \
+	&& bash install.sh \
 	&& rm -rf /var/lib/apt/lists/*
 
 VOLUME /project

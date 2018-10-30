@@ -38,3 +38,6 @@ cmake-build-*
 # llvm coverage information
 default.profdata
 default.profraw
+
+# ignore vim swap
+*.swp
