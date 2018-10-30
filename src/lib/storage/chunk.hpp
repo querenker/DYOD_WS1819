@@ -46,6 +46,7 @@ class Chunk : private Noncopyable {
   std::shared_ptr<BaseSegment> get_segment(ColumnID column_id) const;
 
  protected:
+  // holds pointers to segments
   std::vector<std::shared_ptr<BaseSegment>> _segments;
 };
 

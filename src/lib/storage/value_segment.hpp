@@ -28,6 +28,7 @@ class ValueSegment : public BaseSegment {
   const std::vector<T>& values() const;
 
  protected:
+  // stores the values of the segment
   std::vector<T> _values;
 };
 

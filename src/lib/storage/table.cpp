@@ -26,7 +26,7 @@ void Table::add_segment_to_chunk(std::shared_ptr<Chunk> chunk, const std::string
 
 void Table::add_new_chunk() {
   auto chunk = std::make_shared<Chunk>();
-  for (auto& column : _columns) {
+  for (const auto& column : _columns) {
     add_segment_to_chunk(chunk, column.second);
   }
   _chunks.push_back(chunk);
@@ -56,19 +56,19 @@ ChunkID Table::chunk_count() const {
 }
 
 ColumnID Table::column_id_by_name(const std::string& column_name) const {
-  auto column_iter = find_if(_columns.begin(), _columns.end(),
+  auto column_iter = find_if(_columns.cbegin(), _columns.cend(),
                              [&column_name](auto& column) { return column.first.compare(column_name) == 0; });
   if (column_iter == _columns.end()) {
     throw std::runtime_error("no column with this name " + column_name);
   }
-  return ColumnID(std::distance(_columns.begin(), column_iter));
+  return ColumnID(std::distance(_columns.cbegin(), column_iter));
 }
 
 uint32_t Table::chunk_size() const { return _chunk_size; }
 
 const std::vector<std::string>& Table::column_names() const {
   auto column_names = std::vector<std::string>(_columns.size());
-  std::transform(_columns.begin(), _columns.end(), column_names.begin(), [](auto& column) { return column.first; });
+  std::transform(_columns.cbegin(), _columns.cend(), column_names.begin(), [](auto& column) { return column.first; });
   return std::move(column_names);
 }
 
