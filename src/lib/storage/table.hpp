@@ -87,5 +87,8 @@ class Table : private Noncopyable {
 
   // adds a new empty chunk at the end of the chunk list
   void add_new_chunk();
+
+  // adds an empty segment of given type to given chunk
+  void add_segment_to_chunk(std::shared_ptr<Chunk> chunk, const std::string& type);
 };
 }  // namespace opossum

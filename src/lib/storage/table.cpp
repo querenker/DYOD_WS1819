@@ -19,11 +19,15 @@ namespace opossum {
 
 Table::Table(const uint32_t chunk_size) : _chunk_size(chunk_size) { add_new_chunk(); }
 
+void Table::add_segment_to_chunk(std::shared_ptr<Chunk> chunk, const std::string& type) {
+  auto new_segment = make_shared_by_data_type<BaseSegment, ValueSegment>(type);
+  chunk->add_segment(new_segment);
+}
+
 void Table::add_new_chunk() {
   auto chunk = std::make_shared<Chunk>();
   for (auto& column : _columns) {
-    auto new_segment = make_shared_by_data_type<BaseSegment, ValueSegment>(column.second);
-    chunk->add_segment(new_segment);
+    add_segment_to_chunk(chunk, column.second);
   }
   _chunks.push_back(chunk);
 }
@@ -31,8 +35,7 @@ void Table::add_new_chunk() {
 void Table::add_column(const std::string& name, const std::string& type) {
   DebugAssert(row_count() == 0, "cannot add columns if rows already exist");
   _columns.push_back(std::make_pair(name, type));
-  auto new_segment = make_shared_by_data_type<BaseSegment, ValueSegment>(type);
-  _chunks[0]->add_segment(new_segment);
+  add_segment_to_chunk(_chunks[0], type);
 }
 
 void Table::append(std::vector<AllTypeVariant> values) {
@@ -53,7 +56,6 @@ ChunkID Table::chunk_count() const {
 }
 
 ColumnID Table::column_id_by_name(const std::string& column_name) const {
-  // Implementation goes here
   auto column_iter = find_if(_columns.begin(), _columns.end(),
                              [&column_name](auto& column) { return column.first.compare(column_name) == 0; });
   if (column_iter == _columns.end()) {
