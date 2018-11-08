@@ -71,4 +71,15 @@ TEST_F(StorageTableTest, GetColumnIdByName) {
 
 TEST_F(StorageTableTest, GetChunkSize) { EXPECT_EQ(t.chunk_size(), 2u); }
 
+TEST_F(StorageTableTest, CompressChunk) {
+  t.append({4, "Hello,"});
+  t.append({6, "world"});
+  t.append({3, "!"});
+  t.compress_chunk(ChunkID{0});
+  const auto& chunk = t.get_chunk(ChunkID{0});
+  const auto segment = chunk.get_segment(ColumnID{0});
+  EXPECT_EQ(type_cast<int>((*segment)[0]), 4);
+  EXPECT_EQ(type_cast<int>((*segment)[1]), 6);
+}
+
 }  // namespace opossum
