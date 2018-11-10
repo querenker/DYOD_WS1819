@@ -63,7 +63,6 @@ TEST_F(StorageStorageManagerTest, TableNames) {
   for(auto i = 0; i < 2; i++) {
     EXPECT_EQ(table_names.at(i), actual_table_names.at(i));
   }
-  sm.print(std::cerr);
 }
 
 TEST_F(StorageStorageManagerTest, Print) {
