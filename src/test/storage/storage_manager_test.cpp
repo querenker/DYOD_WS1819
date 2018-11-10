@@ -20,6 +20,11 @@ class StorageStorageManagerTest : public BaseTest {
   }
 };
 
+TEST_F(StorageStorageManagerTest, AddTableWithUsedName) {
+  auto& sm = StorageManager::get();
+  EXPECT_THROW(sm.add_table("first_table", std::make_shared<Table>()), std::exception);
+}
+
 TEST_F(StorageStorageManagerTest, GetTable) {
   auto& sm = StorageManager::get();
   auto t3 = sm.get_table("first_table");
@@ -48,6 +53,25 @@ TEST_F(StorageStorageManagerTest, DoesNotHaveTable) {
 TEST_F(StorageStorageManagerTest, HasTable) {
   auto& sm = StorageManager::get();
   EXPECT_EQ(sm.has_table("first_table"), true);
+}
+
+TEST_F(StorageStorageManagerTest, TableNames) {
+  auto& sm = StorageManager::get();
+  const auto table_names = sm.table_names();
+  const std::vector<std::string> actual_table_names = {"second_table", "first_table"};
+  EXPECT_EQ(table_names.size(), static_cast<size_t>(2));
+  for(auto i = 0; i < 2; i++) {
+    EXPECT_EQ(table_names.at(i), actual_table_names.at(i));
+  }
+  sm.print(std::cerr);
+}
+
+TEST_F(StorageStorageManagerTest, Print) {
+  auto& sm = StorageManager::get();
+  std::ostringstream buffer;
+  sm.print(buffer);
+  auto expected_output = "second_table 0 0 1\nfirst_table 0 0 1\n";
+  EXPECT_EQ(expected_output, buffer.str());
 }
 
 }  // namespace opossum
