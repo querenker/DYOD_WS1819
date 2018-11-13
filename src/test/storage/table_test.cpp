@@ -17,6 +17,9 @@ class StorageTableTest : public BaseTest {
   void SetUp() override {
     t.add_column("col_1", "int");
     t.add_column("col_2", "string");
+    t.add_column("col_3", "int");
+    t.add_column("col_4", "int");
+    t.add_column("col_5", "int");
   }
 
   Table t{2};
@@ -24,9 +27,9 @@ class StorageTableTest : public BaseTest {
 
 TEST_F(StorageTableTest, ChunkCount) {
   EXPECT_EQ(t.chunk_count(), 1u);
-  t.append({4, "Hello,"});
-  t.append({6, "world"});
-  t.append({3, "!"});
+  t.append({4, "Hello,", 1, 2, 3});
+  t.append({6, "world", 1, 2, 3});
+  t.append({3, "!", 1, 2, 3});
   EXPECT_EQ(t.chunk_count(), 2u);
 }
 
@@ -34,19 +37,19 @@ TEST_F(StorageTableTest, GetChunk) {
   t.get_chunk(ChunkID{0});
   // TODO(anyone): Do we want checks here?
   // EXPECT_THROW(t.get_chunk(ChunkID{q}), std::exception);
-  t.append({4, "Hello,"});
-  t.append({6, "world"});
-  t.append({3, "!"});
+  t.append({4, "Hello,", 1, 2, 3});
+  t.append({6, "world", 1, 2, 3});
+  t.append({3, "!", 1, 2, 3});
   t.get_chunk(ChunkID{1});
 }
 
-TEST_F(StorageTableTest, ColumnCount) { EXPECT_EQ(t.column_count(), 2u); }
+TEST_F(StorageTableTest, ColumnCount) { EXPECT_EQ(t.column_count(), 5u); }
 
 TEST_F(StorageTableTest, RowCount) {
   EXPECT_EQ(t.row_count(), 0u);
-  t.append({4, "Hello,"});
-  t.append({6, "world"});
-  t.append({3, "!"});
+  t.append({4, "Hello,", 1, 2, 3});
+  t.append({6, "world", 1, 2, 3});
+  t.append({3, "!", 1, 2, 3});
   EXPECT_EQ(t.row_count(), 3u);
 }
 
@@ -66,15 +69,16 @@ TEST_F(StorageTableTest, GetColumnType) {
 
 TEST_F(StorageTableTest, GetColumnIdByName) {
   EXPECT_EQ(t.column_id_by_name("col_2"), 1u);
+  EXPECT_EQ(t.column_id_by_name("col_5"), 4u);
   EXPECT_THROW(t.column_id_by_name("no_column_name"), std::exception);
 }
 
 TEST_F(StorageTableTest, GetChunkSize) { EXPECT_EQ(t.chunk_size(), 2u); }
 
 TEST_F(StorageTableTest, CompressChunk) {
-  t.append({4, "Hello,"});
-  t.append({6, "world"});
-  t.append({3, "!"});
+  t.append({4, "Hello,", 1, 2, 3});
+  t.append({6, "world", 1, 2, 3});
+  t.append({3, "!", 1, 2, 3});
   t.compress_chunk(ChunkID{0});
   const auto& chunk = t.get_chunk(ChunkID{0});
   const auto segment = chunk.get_segment(ColumnID{0});

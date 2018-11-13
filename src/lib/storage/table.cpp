@@ -27,15 +27,16 @@ void Table::add_segment_to_chunk(std::shared_ptr<Chunk> chunk, const std::string
 
 void Table::add_new_chunk() {
   auto chunk = std::make_shared<Chunk>();
-  for (const auto& column : _columns) {
-    add_segment_to_chunk(chunk, column.second);
+  for (const auto& column_type : _column_types) {
+    add_segment_to_chunk(chunk, column_type);
   }
   _chunks.push_back(chunk);
 }
 
 void Table::add_column(const std::string& name, const std::string& type) {
   DebugAssert(row_count() == 0, "cannot add columns if rows already exist");
-  _columns.push_back(std::make_pair(name, type));
+  _column_names.push_back(name);
+  _column_types.push_back(type);
   add_segment_to_chunk(_chunks[0], type);
 }
 
@@ -47,7 +48,7 @@ void Table::append(std::vector<AllTypeVariant> values) {
   _chunks.back()->append(values);
 }
 
-uint16_t Table::column_count() const { return _columns.size(); }
+uint16_t Table::column_count() const { return _column_names.size(); }
 
 uint64_t Table::row_count() const {
   uint64_t row_count = 0;
@@ -63,23 +64,20 @@ ChunkID Table::chunk_count() const {
 }
 
 ColumnID Table::column_id_by_name(const std::string& column_name) const {
-  auto column_iter = find_if(_columns.cbegin(), _columns.cend(),
-                             [&column_name](auto& column) { return column.first.compare(column_name) == 0; });
-  Assert(column_iter != _columns.end(), "no column with this name " + column_name);
-  return ColumnID(std::distance(_columns.cbegin(), column_iter));
+  auto column_with_name = std::find(_column_names.begin(), _column_names.end(), column_name);
+  Assert(column_with_name != _column_names.end(), "no column with this name " + column_name);
+  return ColumnID(std::distance(_column_names.begin(), column_with_name));
 }
 
 uint32_t Table::chunk_size() const { return _chunk_size; }
 
 const std::vector<std::string>& Table::column_names() const {
-  auto column_names = std::vector<std::string>(_columns.size());
-  std::transform(_columns.cbegin(), _columns.cend(), column_names.begin(), [](auto& column) { return column.first; });
-  return std::move(column_names);
+  return _column_names;
 }
 
-const std::string& Table::column_name(ColumnID column_id) const { return _columns[column_id].first; }
+const std::string& Table::column_name(ColumnID column_id) const { return _column_names[column_id]; }
 
-const std::string& Table::column_type(ColumnID column_id) const { return _columns[column_id].second; }
+const std::string& Table::column_type(ColumnID column_id) const { return _column_types[column_id]; }
 
 Chunk& Table::get_chunk(ChunkID chunk_id) { return *(_chunks[chunk_id]); }
 
