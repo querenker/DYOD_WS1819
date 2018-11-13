@@ -49,7 +49,13 @@ void Table::append(std::vector<AllTypeVariant> values) {
 
 uint16_t Table::column_count() const { return _columns.size(); }
 
-uint64_t Table::row_count() const { return (_chunks.size() - 1) * _chunk_size + _chunks.back()->size(); }
+uint64_t Table::row_count() const {
+  uint64_t row_count = 0;
+  for(uint64_t row_index = 0; row_index < _chunks.size(); row_index++) {
+    row_count += _chunks[row_index]->size();
+  }
+  return row_count;
+}
 
 ChunkID Table::chunk_count() const {
   DebugAssert(_chunks.size() > 0, "there must always be a chunk");
