@@ -10,6 +10,7 @@
 #include "all_type_variant.hpp"
 #include "types.hpp"
 #include "type_cast.hpp"
+#include "fitted_attribute_vector.hpp"
 #include "utils/performance_warning.hpp"
 
 namespace opossum {
@@ -28,23 +29,35 @@ class DictionarySegment : public BaseSegment {
   /**
    * Creates a Dictionary segment from a given value segment.
    */
-  explicit DictionarySegment(const std::shared_ptr<BaseSegment>& base_segment) : _dictionary(std::make_shared<std::vector<T>>()), _attribute_vector(std::make_shared<std::vector<uint64_t>>()) {
+  explicit DictionarySegment(const std::shared_ptr<BaseSegment>& base_segment) : _dictionary(std::make_shared<std::vector<T>>()), _attribute_vector(nullptr) {
+    DebugAssert(base_segment->size() < std::numeric_limits<ChunkOffset>::max(), "too many values in a segment");
+
     auto unique_values = std::set<T>();
     for(size_t offset = 0; offset < base_segment->size(); offset++) {
       const auto value = type_cast<T>((*base_segment)[offset]);
       unique_values.insert(value);
     }
+
     auto num_unique_elements = unique_values.size();
     _dictionary->reserve(num_unique_elements);
     for(auto& unique_value : unique_values) {
       _dictionary->push_back(unique_value);
     }
-    _attribute_vector->reserve(base_segment->size());
+
+    if (num_unique_elements <= std::numeric_limits<uint8_t>::max()) {
+      _attribute_vector = std::static_pointer_cast<BaseAttributeVector>(std::make_shared<FittedAttributeVector<uint8_t>>(base_segment->size()));
+    } else if (num_unique_elements <= std::numeric_limits<uint16_t>::max()) {
+      _attribute_vector = std::static_pointer_cast<BaseAttributeVector>(std::make_shared<FittedAttributeVector<uint16_t>>(base_segment->size()));
+    } else if (num_unique_elements <= std::numeric_limits<uint32_t>::max()) {
+      _attribute_vector = std::static_pointer_cast<BaseAttributeVector>(std::make_shared<FittedAttributeVector<uint32_t>>(base_segment->size()));
+    }
+
+
     for(size_t offset = 0; offset < base_segment->size(); offset++) {
       const auto value = type_cast<T>((*base_segment)[offset]);
-      auto set_pos = static_cast<size_t>(std::abs(std::distance(unique_values.begin(), unique_values.find(value))));
+      auto set_pos = ValueID(std::abs(std::distance(unique_values.begin(), unique_values.find(value))));
       DebugAssert(set_pos < num_unique_elements, "The value " + type_cast<std::string>(value) + " is not in the dictionary :(");
-      _attribute_vector->push_back(set_pos);
+      _attribute_vector->set(offset, set_pos);
     }
   }
 
@@ -54,12 +67,12 @@ class DictionarySegment : public BaseSegment {
   // return the value at a certain position. If you want to write efficient operators, back off!
   const AllTypeVariant operator[](const size_t i) const override {
     PerformanceWarning("operator[] used");
-    return (*_dictionary)[(*_attribute_vector)[i]];
+    return (*_dictionary)[(*_attribute_vector).get(i)];
   }
 
   // return the value at a certain position.
   const T get(const size_t i) const {
-    return (*_dictionary)[(*_attribute_vector)[i]];
+    return (*_dictionary)[(*_attribute_vector).get(i)];
   } 
 
   // dictionary segments are immutable
@@ -125,7 +138,7 @@ class DictionarySegment : public BaseSegment {
 
  protected:
   std::shared_ptr<std::vector<T>> _dictionary;
-  std::shared_ptr<std::vector<uint64_t>> _attribute_vector;
+  std::shared_ptr<BaseAttributeVector> _attribute_vector;
 };
 
 }  // namespace opossum
