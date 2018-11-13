@@ -25,6 +25,10 @@ class StorageTableTest : public BaseTest {
   Table t{2};
 };
 
+TEST_F(StorageTableTest, AddColumnNameTwice) {
+  EXPECT_THROW(t.add_column("col_1", "int"), std::exception);
+}
+
 TEST_F(StorageTableTest, ChunkCount) {
   EXPECT_EQ(t.chunk_count(), 1u);
   t.append({4, "Hello,", 1, 2, 3});

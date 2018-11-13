@@ -35,6 +35,7 @@ void Table::add_new_chunk() {
 
 void Table::add_column(const std::string& name, const std::string& type) {
   DebugAssert(row_count() == 0, "cannot add columns if rows already exist");
+  Assert(std::find(_column_names.begin(), _column_names.end(), name) == _column_names.end(), "column with name " + name + " already exist");
   _column_names.push_back(name);
   _column_types.push_back(type);
   add_segment_to_chunk(_chunks[0], type);
