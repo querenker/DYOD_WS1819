@@ -39,9 +39,9 @@ class DictionarySegment : public BaseSegment {
       unique_values.insert(value);
     }
 
-    auto num_unique_elements = unique_values.size();
+    const auto num_unique_elements = unique_values.size();
     _dictionary->reserve(num_unique_elements);
-    for (auto& unique_value : unique_values) {
+    for (const auto& unique_value : unique_values) {
       _dictionary->push_back(unique_value);
     }
 
@@ -58,7 +58,7 @@ class DictionarySegment : public BaseSegment {
 
     for (size_t offset = 0; offset < base_segment->size(); offset++) {
       const auto value = type_cast<T>((*base_segment)[offset]);
-      auto set_pos = ValueID(std::abs(std::distance(unique_values.begin(), unique_values.find(value))));
+      const auto set_pos = ValueID(std::abs(std::distance(unique_values.begin(), unique_values.find(value))));
       DebugAssert(set_pos < num_unique_elements,
                   "The value " + type_cast<std::string>(value) + " is not in the dictionary :(");
       _attribute_vector->set(offset, set_pos);

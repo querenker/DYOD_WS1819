@@ -1,3 +1,6 @@
+#include <limits>
+#include <memory>
+
 #include "../base_test.hpp"
 #include "gtest/gtest.h"
 
@@ -38,4 +41,4 @@ TEST_F(StorageFittedAttributeVectorTest, Width) {
   EXPECT_EQ(vector->width(), 4u);
 }
 
-}  //Namespace opossum
+}  // namespace opossum
