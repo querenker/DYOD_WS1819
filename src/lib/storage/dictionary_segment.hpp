@@ -30,7 +30,7 @@ class DictionarySegment : public BaseSegment {
    * Creates a Dictionary segment from a given value segment.
    */
   explicit DictionarySegment(const std::shared_ptr<BaseSegment>& base_segment) : _dictionary(std::make_shared<std::vector<T>>()), _attribute_vector(nullptr) {
-    DebugAssert(base_segment->size() < std::numeric_limits<ChunkOffset>::max(), "too many values in a segment");
+    DebugAssert(base_segment->size() <= std::numeric_limits<ChunkOffset>::max(), "too many values in a segment");
 
     auto unique_values = std::set<T>();
     for(size_t offset = 0; offset < base_segment->size(); offset++) {
