@@ -60,4 +60,29 @@ TEST_F(StorageDictionarySegmentTest, Immutability) {
   EXPECT_THROW(col->append("Not allowed!!!!"), std::exception);
 }
 
-// TODO(student): You should add some more tests here (full coverage would be appreciated) and possibly in other files.
+TEST_F(StorageDictionarySegmentTest, AttributeWidthWideEnough) {
+  vc_int->append(0);
+  auto col = opossum::make_shared_by_data_type<opossum::BaseSegment, opossum::DictionarySegment>("int", vc_int);
+  auto dict_col = std::dynamic_pointer_cast<opossum::DictionarySegment<int>>(col);
+  auto attribute_vector = dict_col->attribute_vector();
+  EXPECT_EQ(attribute_vector->width(), 1u);
+
+
+  vc_int = std::make_shared<opossum::ValueSegment<int>>();
+  for (int16_t value = 0;value <= std::numeric_limits<uint8_t>::max();value++) {
+    vc_int->append(value);
+  }
+  col = opossum::make_shared_by_data_type<opossum::BaseSegment, opossum::DictionarySegment>("int", vc_int);
+  dict_col = std::dynamic_pointer_cast<opossum::DictionarySegment<int>>(col);
+  attribute_vector = dict_col->attribute_vector();
+  EXPECT_EQ(attribute_vector->width(), 2u);
+
+  vc_int = std::make_shared<opossum::ValueSegment<int>>();
+  for (int32_t value = 0;value <= std::numeric_limits<uint16_t>::max();value++) {
+    vc_int->append(value);
+  }
+  col = opossum::make_shared_by_data_type<opossum::BaseSegment, opossum::DictionarySegment>("int", vc_int);
+  dict_col = std::dynamic_pointer_cast<opossum::DictionarySegment<int>>(col);
+  attribute_vector = dict_col->attribute_vector();
+  EXPECT_EQ(attribute_vector->width(), 4u);
+}
