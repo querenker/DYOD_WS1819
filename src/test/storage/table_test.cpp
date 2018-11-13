@@ -39,12 +39,20 @@ TEST_F(StorageTableTest, ChunkCount) {
 
 TEST_F(StorageTableTest, GetChunk) {
   t.get_chunk(ChunkID{0});
-  // TODO(anyone): Do we want checks here?
-  // EXPECT_THROW(t.get_chunk(ChunkID{q}), std::exception);
+
+  if (IS_DEBUG) {
+    EXPECT_THROW(t.get_chunk(ChunkID{1}), std::exception);
+  }
+
   t.append({4, "Hello,", 1, 2, 3});
   t.append({6, "world", 1, 2, 3});
   t.append({3, "!", 1, 2, 3});
   t.get_chunk(ChunkID{1});
+
+  const Chunk& chunk = t.get_chunk(ChunkID{0});
+  const auto segment = chunk.get_segment(ColumnID{0});
+  EXPECT_EQ(type_cast<int>((*segment)[0]), 4);
+  EXPECT_EQ(type_cast<int>((*segment)[1]), 6);
 }
 
 TEST_F(StorageTableTest, ColumnCount) { EXPECT_EQ(t.column_count(), 5u); }

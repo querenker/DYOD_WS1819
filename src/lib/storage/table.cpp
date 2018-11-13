@@ -80,9 +80,15 @@ const std::string& Table::column_name(ColumnID column_id) const { return _column
 
 const std::string& Table::column_type(ColumnID column_id) const { return _column_types[column_id]; }
 
-Chunk& Table::get_chunk(ChunkID chunk_id) { return *(_chunks[chunk_id]); }
+Chunk& Table::get_chunk(ChunkID chunk_id) {
+  DebugAssert(chunk_id < _chunks.size(), "invalid chunk id");
+  return *(_chunks[chunk_id]);
+}
 
-const Chunk& Table::get_chunk(ChunkID chunk_id) const { return *(_chunks[chunk_id]); }
+const Chunk& Table::get_chunk(ChunkID chunk_id) const {
+  DebugAssert(chunk_id < _chunks.size(), "invalid chunk id");
+  return *(_chunks[chunk_id]);
+}
 
 void Table::compress_chunk(ChunkID chunk_id) {
   DebugAssert(chunk_id < _chunks.size(), "invalid chunk id");
