@@ -21,6 +21,7 @@ namespace opossum {
 
         void set(const size_t offset, const ValueID value_id) override {
             DebugAssert(offset < _values.size(), "invalid offset");
+            DebugAssert(value_id <= ValueID{std::numeric_limits<T>::max()}, "invalid value_id");
             _values[offset] = value_id;
         }
 
