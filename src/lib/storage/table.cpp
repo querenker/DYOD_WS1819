@@ -11,10 +11,10 @@
 
 #include "value_segment.hpp"
 
+#include "dictionary_segment.hpp"
 #include "resolve_type.hpp"
 #include "types.hpp"
 #include "utils/assert.hpp"
-#include "dictionary_segment.hpp"
 
 namespace opossum {
 
@@ -35,7 +35,8 @@ void Table::add_new_chunk() {
 
 void Table::add_column(const std::string& name, const std::string& type) {
   DebugAssert(row_count() == 0, "cannot add columns if rows already exist");
-  Assert(std::find(_column_names.begin(), _column_names.end(), name) == _column_names.end(), "column with name " + name + " already exist");
+  Assert(std::find(_column_names.begin(), _column_names.end(), name) == _column_names.end(),
+         "column with name " + name + " already exist");
   _column_names.push_back(name);
   _column_types.push_back(type);
   add_segment_to_chunk(_chunks[0], type);
@@ -53,7 +54,7 @@ uint16_t Table::column_count() const { return _column_names.size(); }
 
 uint64_t Table::row_count() const {
   uint64_t row_count = 0;
-  for(uint64_t row_index = 0; row_index < _chunks.size(); row_index++) {
+  for (uint64_t row_index = 0; row_index < _chunks.size(); row_index++) {
     row_count += _chunks[row_index]->size();
   }
   return row_count;
@@ -72,9 +73,7 @@ ColumnID Table::column_id_by_name(const std::string& column_name) const {
 
 uint32_t Table::chunk_size() const { return _chunk_size; }
 
-const std::vector<std::string>& Table::column_names() const {
-  return _column_names;
-}
+const std::vector<std::string>& Table::column_names() const { return _column_names; }
 
 const std::string& Table::column_name(ColumnID column_id) const { return _column_names[column_id]; }
 
@@ -95,7 +94,8 @@ void Table::compress_chunk(ChunkID chunk_id) {
   const auto chunk = _chunks[chunk_id];
   auto new_chunk = std::make_shared<Chunk>();
   for (ColumnID column_id = ColumnID{0}; column_id < chunk->size(); column_id++) {
-    auto dictionary_segment = make_shared_by_data_type<BaseSegment, DictionarySegment>(column_type(column_id) ,chunk->get_segment(column_id));
+    auto dictionary_segment =
+        make_shared_by_data_type<BaseSegment, DictionarySegment>(column_type(column_id), chunk->get_segment(column_id));
     new_chunk->add_segment(dictionary_segment);
   }
   _chunks[chunk_id] = new_chunk;

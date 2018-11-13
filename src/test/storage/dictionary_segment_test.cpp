@@ -1,3 +1,4 @@
+#include <limits>
 #include <memory>
 #include <string>
 
@@ -67,9 +68,8 @@ TEST_F(StorageDictionarySegmentTest, AttributeWidthWideEnough) {
   auto attribute_vector = dict_col->attribute_vector();
   EXPECT_EQ(attribute_vector->width(), 1u);
 
-
   vc_int = std::make_shared<opossum::ValueSegment<int>>();
-  for (int16_t value = 0;value <= std::numeric_limits<uint8_t>::max();value++) {
+  for (int16_t value = 0; value <= std::numeric_limits<uint8_t>::max(); value++) {
     vc_int->append(value);
   }
   col = opossum::make_shared_by_data_type<opossum::BaseSegment, opossum::DictionarySegment>("int", vc_int);
@@ -78,7 +78,7 @@ TEST_F(StorageDictionarySegmentTest, AttributeWidthWideEnough) {
   EXPECT_EQ(attribute_vector->width(), 2u);
 
   vc_int = std::make_shared<opossum::ValueSegment<int>>();
-  for (int32_t value = 0;value <= std::numeric_limits<uint16_t>::max();value++) {
+  for (int32_t value = 0; value <= std::numeric_limits<uint16_t>::max(); value++) {
     vc_int->append(value);
   }
   col = opossum::make_shared_by_data_type<opossum::BaseSegment, opossum::DictionarySegment>("int", vc_int);
