@@ -11,6 +11,7 @@
 
 #include "value_segment.hpp"
 
+#include "dictionary_segment.hpp"
 #include "resolve_type.hpp"
 #include "types.hpp"
 #include "utils/assert.hpp"
@@ -26,15 +27,18 @@ void Table::add_segment_to_chunk(std::shared_ptr<Chunk> chunk, const std::string
 
 void Table::add_new_chunk() {
   auto chunk = std::make_shared<Chunk>();
-  for (const auto& column : _columns) {
-    add_segment_to_chunk(chunk, column.second);
+  for (const auto& column_type : _column_types) {
+    add_segment_to_chunk(chunk, column_type);
   }
   _chunks.push_back(chunk);
 }
 
 void Table::add_column(const std::string& name, const std::string& type) {
   DebugAssert(row_count() == 0, "cannot add columns if rows already exist");
-  _columns.push_back(std::make_pair(name, type));
+  Assert(std::find(_column_names.begin(), _column_names.end(), name) == _column_names.end(),
+         "column with name " + name + " already exist");
+  _column_names.push_back(name);
+  _column_types.push_back(type);
   add_segment_to_chunk(_chunks[0], type);
 }
 
@@ -46,9 +50,15 @@ void Table::append(std::vector<AllTypeVariant> values) {
   _chunks.back()->append(values);
 }
 
-uint16_t Table::column_count() const { return _columns.size(); }
+uint16_t Table::column_count() const { return _column_names.size(); }
 
-uint64_t Table::row_count() const { return (_chunks.size() - 1) * _chunk_size + _chunks.back()->size(); }
+uint64_t Table::row_count() const {
+  uint64_t row_count = 0;
+  for (uint64_t row_index = 0; row_index < _chunks.size(); row_index++) {
+    row_count += _chunks[row_index]->size();
+  }
+  return row_count;
+}
 
 ChunkID Table::chunk_count() const {
   DebugAssert(_chunks.size() > 0, "there must always be a chunk");
@@ -56,30 +66,39 @@ ChunkID Table::chunk_count() const {
 }
 
 ColumnID Table::column_id_by_name(const std::string& column_name) const {
-  auto column_iter = find_if(_columns.cbegin(), _columns.cend(),
-                             [&column_name](auto& column) { return column.first.compare(column_name) == 0; });
-  if (column_iter == _columns.end()) {
-    throw std::runtime_error("no column with this name " + column_name);
-  }
-  return ColumnID(std::distance(_columns.cbegin(), column_iter));
+  const auto column_with_name = std::find(_column_names.begin(), _column_names.end(), column_name);
+  Assert(column_with_name != _column_names.end(), "no column with this name " + column_name);
+  return ColumnID(std::distance(_column_names.begin(), column_with_name));
 }
 
 uint32_t Table::chunk_size() const { return _chunk_size; }
 
-const std::vector<std::string>& Table::column_names() const {
-  auto column_names = std::vector<std::string>(_columns.size());
-  std::transform(_columns.cbegin(), _columns.cend(), column_names.begin(), [](auto& column) { return column.first; });
-  return std::move(column_names);
+const std::vector<std::string>& Table::column_names() const { return _column_names; }
+
+const std::string& Table::column_name(ColumnID column_id) const { return _column_names[column_id]; }
+
+const std::string& Table::column_type(ColumnID column_id) const { return _column_types[column_id]; }
+
+Chunk& Table::get_chunk(ChunkID chunk_id) {
+  DebugAssert(chunk_id < _chunks.size(), "invalid chunk id");
+  return *(_chunks[chunk_id]);
 }
 
-const std::string& Table::column_name(ColumnID column_id) const { return _columns[column_id].first; }
+const Chunk& Table::get_chunk(ChunkID chunk_id) const {
+  DebugAssert(chunk_id < _chunks.size(), "invalid chunk id");
+  return *(_chunks[chunk_id]);
+}
 
-const std::string& Table::column_type(ColumnID column_id) const { return _columns[column_id].second; }
-
-Chunk& Table::get_chunk(ChunkID chunk_id) { return *(_chunks[chunk_id]); }
-
-const Chunk& Table::get_chunk(ChunkID chunk_id) const { return *(_chunks[chunk_id]); }
-
-void Table::compress_chunk(ChunkID chunk_id) { throw std::runtime_error("Implement Table::compress_chunk"); }
+void Table::compress_chunk(ChunkID chunk_id) {
+  DebugAssert(chunk_id < _chunks.size(), "invalid chunk id");
+  const auto chunk = _chunks[chunk_id];
+  auto new_chunk = std::make_shared<Chunk>();
+  for (ColumnID column_id = ColumnID{0}; column_id < chunk->size(); column_id++) {
+    auto dictionary_segment =
+        make_shared_by_data_type<BaseSegment, DictionarySegment>(column_type(column_id), chunk->get_segment(column_id));
+    new_chunk->add_segment(dictionary_segment);
+  }
+  _chunks[chunk_id] = new_chunk;
+}
 
 }  // namespace opossum

@@ -16,23 +16,16 @@ StorageManager& StorageManager::get() {
 }
 
 void StorageManager::add_table(const std::string& name, std::shared_ptr<Table> table) {
-  if (has_table(name)) {
-    throw std::runtime_error("this table name is already used: " + name);
-  }
+  Assert(!has_table(name), "this table name is already used: " + name);
   _tables[name] = table;
 }
 
 void StorageManager::drop_table(const std::string& name) {
-  if (!has_table(name)) {
-    throw std::runtime_error("this table name does not exist: " + name);
-  }
+  Assert(has_table(name), "this table name does not exist: " + name);
   _tables.erase(name);
 }
 
-std::shared_ptr<Table> StorageManager::get_table(const std::string& name) const {
-  DebugAssert(has_table(name), "this table name does not exist: " + name);
-  return _tables.at(name);
-}
+std::shared_ptr<Table> StorageManager::get_table(const std::string& name) const { return _tables.at(name); }
 
 bool StorageManager::has_table(const std::string& name) const { return _tables.find(name) != _tables.end(); }
 

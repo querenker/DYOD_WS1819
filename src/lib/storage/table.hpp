@@ -86,8 +86,11 @@ class Table : private Noncopyable {
   // maximum size of one chunk
   uint32_t _chunk_size;
 
-  // list of all column attributes (pair of name and type)
-  std::vector<std::pair<std::string, std::string>> _columns;
+  // ordered list of all column names
+  std::vector<std::string> _column_names;
+
+  // ordered list of all column types
+  std::vector<std::string> _column_types;
 
   // adds a new empty chunk at the end of the chunk list
   void add_new_chunk();
