@@ -59,9 +59,7 @@ ChunkID Table::chunk_count() const {
 ColumnID Table::column_id_by_name(const std::string& column_name) const {
   auto column_iter = find_if(_columns.cbegin(), _columns.cend(),
                              [&column_name](auto& column) { return column.first.compare(column_name) == 0; });
-  if (column_iter == _columns.end()) {
-    throw std::runtime_error("no column with this name " + column_name);
-  }
+  Assert(column_iter != _columns.end(), "no column with this name " + column_name);
   return ColumnID(std::distance(_columns.cbegin(), column_iter));
 }
 
