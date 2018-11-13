@@ -60,7 +60,7 @@ TEST_F(StorageStorageManagerTest, TableNames) {
   const auto table_names = sm.table_names();
   const std::vector<std::string> actual_table_names = {"second_table", "first_table"};
   EXPECT_EQ(table_names.size(), static_cast<size_t>(2));
-  for(auto i = 0; i < 2; i++) {
+  for (auto i = 0; i < 2; i++) {
     EXPECT_EQ(table_names.at(i), actual_table_names.at(i));
   }
 }

@@ -25,9 +25,7 @@ class StorageTableTest : public BaseTest {
   Table t{2};
 };
 
-TEST_F(StorageTableTest, AddColumnNameTwice) {
-  EXPECT_THROW(t.add_column("col_1", "int"), std::exception);
-}
+TEST_F(StorageTableTest, AddColumnNameTwice) { EXPECT_THROW(t.add_column("col_1", "int"), std::exception); }
 
 TEST_F(StorageTableTest, ChunkCount) {
   EXPECT_EQ(t.chunk_count(), 1u);
@@ -75,10 +73,10 @@ TEST_F(StorageTableTest, GetColumnName) {
 TEST_F(StorageTableTest, GetColumnNames) {
   std::vector<std::string> expected_names(5);
   expected_names[0] = "col_1";
-  expected_names[1] = "col_2"; 
-  expected_names[2] = "col_3"; 
-  expected_names[3] = "col_4"; 
-  expected_names[4] = "col_5"; 
+  expected_names[1] = "col_2";
+  expected_names[2] = "col_3";
+  expected_names[3] = "col_4";
+  expected_names[4] = "col_5";
   EXPECT_EQ(t.column_names(), expected_names);
 }
 
