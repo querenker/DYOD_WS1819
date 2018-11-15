@@ -46,6 +46,6 @@ void StorageManager::print(std::ostream& out) const {
   }
 }
 
-void StorageManager::reset() { _tables.clear(); }
+void StorageManager::reset() { StorageManager::get()._tables.clear(); }
 
 }  // namespace opossum

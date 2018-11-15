@@ -33,6 +33,10 @@ void Table::add_new_chunk() {
   _chunks.push_back(chunk);
 }
 
+void Table::add_column_definition(const std::string& name, const std::string& type) {
+  // Implementation goes here
+}
+
 void Table::add_column(const std::string& name, const std::string& type) {
   DebugAssert(row_count() == 0, "cannot add columns if rows already exist");
   Assert(std::find(_column_names.begin(), _column_names.end(), name) == _column_names.end(),
@@ -51,6 +55,10 @@ void Table::append(std::vector<AllTypeVariant> values) {
 }
 
 uint16_t Table::column_count() const { return _column_names.size(); }
+
+void Table::create_new_chunk() {
+  // Implementation goes here
+}
 
 uint64_t Table::row_count() const {
   uint64_t row_count = 0;
@@ -99,6 +107,10 @@ void Table::compress_chunk(ChunkID chunk_id) {
     new_chunk->add_segment(dictionary_segment);
   }
   _chunks[chunk_id] = new_chunk;
+}
+
+void emplace_chunk(Chunk chunk) {
+  // Implementation goes here
 }
 
 }  // namespace opossum
