@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "base_attribute_vector.hpp"
+#include "utils/assert.hpp"
 
 namespace opossum {
 
@@ -27,6 +28,10 @@ class FittedAttributeVector : public BaseAttributeVector {
   size_t size() const override { return _values.size(); }
 
   AttributeVectorWidth width() const override { return sizeof(T); }
+
+  const std::vector<T>& values() const {
+      return _values;
+  }
 
  protected:
   std::vector<T> _values;

@@ -8,10 +8,14 @@
 #include <vector>
 
 #include "all_type_variant.hpp"
+#include "base_segment.hpp"
 #include "fitted_attribute_vector.hpp"
+#include "value_segment.hpp"
 #include "type_cast.hpp"
 #include "types.hpp"
+#include "utils/assert.hpp"
 #include "utils/performance_warning.hpp"
+
 
 namespace opossum {
 
