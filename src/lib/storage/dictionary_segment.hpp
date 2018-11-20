@@ -32,10 +32,11 @@ class DictionarySegment : public BaseSegment {
   explicit DictionarySegment(const std::shared_ptr<BaseSegment>& base_segment)
       : _dictionary(std::make_shared<std::vector<T>>()), _attribute_vector(nullptr) {
     DebugAssert(base_segment->size() <= std::numeric_limits<ChunkOffset>::max(), "too many values in a segment");
+    const auto value_segment = std::dynamic_pointer_cast<ValueSegment<T>>(base_segment);
+    DebugAssert(value_segment != nullptr, "expected to get a value segment");
 
     auto unique_values = std::set<T>();
-    for (size_t offset = 0; offset < base_segment->size(); offset++) {
-      const auto value = type_cast<T>((*base_segment)[offset]);
+    for (const auto& value : value_segment->values()) {
       unique_values.insert(value);
     }
 
@@ -56,12 +57,12 @@ class DictionarySegment : public BaseSegment {
           std::make_shared<FittedAttributeVector<uint32_t>>(base_segment->size()));
     }
 
-    for (size_t offset = 0; offset < base_segment->size(); offset++) {
-      const auto value = type_cast<T>((*base_segment)[offset]);
+    ChunkOffset offset{0};
+    for (const auto& value: value_segment->values()) {
       const auto set_pos = ValueID(std::abs(std::distance(unique_values.begin(), unique_values.find(value))));
       DebugAssert(set_pos < num_unique_elements,
                   "The value " + type_cast<std::string>(value) + " is not in the dictionary :(");
-      _attribute_vector->set(offset, set_pos);
+      _attribute_vector->set(offset++, set_pos);
     }
   }
 
