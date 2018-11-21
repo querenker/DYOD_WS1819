@@ -18,7 +18,10 @@
 
 namespace opossum {
 
-Table::Table(const uint32_t chunk_size) : _chunk_size(chunk_size) { add_new_chunk(); }
+Table::Table(const uint32_t chunk_size) : _chunk_size(chunk_size) {
+  DebugAssert(chunk_size > 0, "chunk size must be > 0");
+  add_new_chunk();
+}
 
 void Table::add_segment_to_chunk(std::shared_ptr<Chunk> chunk, const std::string& type) {
   auto new_segment = make_shared_by_data_type<BaseSegment, ValueSegment>(type);
@@ -47,7 +50,7 @@ void Table::add_column(const std::string& name, const std::string& type) {
 }
 
 void Table::append(std::vector<AllTypeVariant> values) {
-  DebugAssert(_chunks.back()->size() <= _chunk_size, "chunk contains more values than allowed");
+  DebugAssert(_chunks.back()->size() <= _chunk_size, "chunk contains more values than allowed ");
   if (_chunks.back()->size() == _chunk_size) {
     add_new_chunk();
   }
@@ -98,18 +101,15 @@ const Chunk& Table::get_chunk(ChunkID chunk_id) const {
 }
 
 void Table::compress_chunk(ChunkID chunk_id) {
-  std::cout << "compress_chunk start" << std::endl;
   DebugAssert(chunk_id < _chunks.size(), "invalid chunk id");
   const auto chunk = _chunks[chunk_id];
   auto new_chunk = std::make_shared<Chunk>();
-  std::cout << "compress_chunk middle" << std::endl;
   for (ColumnID column_id = ColumnID{0}; column_id < chunk->column_count(); column_id++) {
     auto dictionary_segment =
         make_shared_by_data_type<BaseSegment, DictionarySegment>(column_type(column_id), chunk->get_segment(column_id));
     new_chunk->add_segment(dictionary_segment);
   }
   _chunks[chunk_id] = new_chunk;
-  std::cout << "compress_chunk end" << std::endl;
 }
 
 void Table::emplace_chunk(Chunk&& chunk) {

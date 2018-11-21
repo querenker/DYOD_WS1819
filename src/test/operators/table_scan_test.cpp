@@ -59,7 +59,7 @@ namespace opossum {
 
    std::shared_ptr<TableWrapper> get_table_op_with_n_dict_entries(const int num_entries) {
      // Set up dictionary encoded table with a dictionary consisting of num_entries entries.
-     auto table = std::make_shared<opossum::Table>(0);
+     auto table = std::make_shared<opossum::Table>();
      table->add_column("a", "int");
      table->add_column("b", "float");
 
@@ -101,6 +101,23 @@ namespace opossum {
 
    std::shared_ptr<TableWrapper> _table_wrapper, _table_wrapper_even_dict;
  };
+
+  TEST_F(OperatorsTableScanTest, ScanOnWideDictionarySegment) {
+// 2**8 + 1 values require a data type of 16bit.
+    const auto table_wrapper_dict_16 = get_table_op_with_n_dict_entries((1 << 8) + 1);
+    auto scan_1 = std::make_shared<opossum::TableScan>(table_wrapper_dict_16, ColumnID{0}, ScanType::OpGreaterThan, 200);
+    scan_1->execute();
+
+    EXPECT_EQ(scan_1->get_output()->row_count(), static_cast<size_t>(57));
+
+// 2**16 + 1 values require a data type of 32bit.
+    const auto table_wrapper_dict_32 = get_table_op_with_n_dict_entries((1 << 16) + 1);
+    auto scan_2 =
+            std::make_shared<opossum::TableScan>(table_wrapper_dict_32, ColumnID{0}, ScanType::OpGreaterThan, 65500);
+    scan_2->execute();
+
+    EXPECT_EQ(scan_2->get_output()->row_count(), static_cast<size_t>(37));
+}
 
  TEST_F(OperatorsTableScanTest, DoubleScan) {
    std::shared_ptr<Table> expected_result = load_table("src/test/tables/int_float_filtered.tbl", 2);
@@ -252,21 +269,6 @@ namespace opossum {
    EXPECT_EQ(scan_2->get_output()->row_count(), static_cast<size_t>(0));
  }
 
- TEST_F(OperatorsTableScanTest, ScanOnWideDictionarySegment) {
-   // 2**8 + 1 values require a data type of 16bit.
-   const auto table_wrapper_dict_16 = get_table_op_with_n_dict_entries((1 << 8) + 1);
-   auto scan_1 = std::make_shared<opossum::TableScan>(table_wrapper_dict_16, ColumnID{0}, ScanType::OpGreaterThan, 200);
-   scan_1->execute();
 
-   EXPECT_EQ(scan_1->get_output()->row_count(), static_cast<size_t>(57));
-
-   // 2**16 + 1 values require a data type of 32bit.
-   const auto table_wrapper_dict_32 = get_table_op_with_n_dict_entries((1 << 16) + 1);
-   auto scan_2 =
-       std::make_shared<opossum::TableScan>(table_wrapper_dict_32, ColumnID{0}, ScanType::OpGreaterThan, 65500);
-   scan_2->execute();
-
-   EXPECT_EQ(scan_2->get_output()->row_count(), static_cast<size_t>(37));
- }
 
 }  // namespace opossum

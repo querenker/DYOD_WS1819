@@ -112,26 +112,26 @@ class TableScan : public AbstractOperator {
                         pos_list->push_back(RowID{chunk_id, chunk_offset});
                     }
                 }
-            } else if (std::dynamic_pointer_cast<DictionarySegment<T>>(segment) != nullptr ){
+            } else if (std::dynamic_pointer_cast<DictionarySegment<T>>(segment) != nullptr){
                 const auto dictionary_segment = std::static_pointer_cast<DictionarySegment<T>>(segment);
                 const auto attribute_vector = dictionary_segment->attribute_vector();
                 const auto dictionary = dictionary_segment->dictionary();
                 
                 switch (attribute_vector->width()) {
                     case sizeof(uint8_t): {
-                        const auto fitted_attribute_vector = std::dynamic_pointer_cast<const FittedAttributeVector<uint8_t>>(attribute_vector);
+                        const auto fitted_attribute_vector = std::static_pointer_cast<const FittedAttributeVector<uint8_t>>(attribute_vector);
                         DebugAssert(fitted_attribute_vector != nullptr, "cast failed");
                         _search_within_dictionary_segment<uint8_t>(dictionary, fitted_attribute_vector, search_value, comparator, chunk_id, pos_list);
                         break;
                     }
                     case sizeof(uint16_t): {
-                        const auto fitted_attribute_vector = std::dynamic_pointer_cast<const FittedAttributeVector<uint16_t>>(attribute_vector);
+                        const auto fitted_attribute_vector = std::static_pointer_cast<const FittedAttributeVector<uint16_t>>(attribute_vector);
                         DebugAssert(fitted_attribute_vector != nullptr, "cast failed");
                         _search_within_dictionary_segment<uint16_t>(dictionary, fitted_attribute_vector, search_value, comparator, chunk_id, pos_list);
                         break;
                     }
                     case sizeof(uint32_t): {
-                        const auto fitted_attribute_vector = std::dynamic_pointer_cast<const FittedAttributeVector<uint32_t>>(attribute_vector);
+                        const auto fitted_attribute_vector = std::static_pointer_cast<const FittedAttributeVector<uint32_t>>(attribute_vector);
                         DebugAssert(fitted_attribute_vector != nullptr, "cast failed");
                         _search_within_dictionary_segment<uint32_t>(dictionary, fitted_attribute_vector, search_value, comparator, chunk_id, pos_list);
                         break;
@@ -141,8 +141,16 @@ class TableScan : public AbstractOperator {
                         Fail("unknown attribute vector width: " + attribute_vector->width());
                     }
                 }
+            } else if (std::dynamic_pointer_cast<ReferenceSegment>(segment) != nullptr) {
+                const auto reference_segment = std::static_pointer_cast<ReferenceSegment>(segment);
+                for (ChunkOffset chunk_offset{0}; chunk_offset < reference_segment->size();chunk_offset++) {
+                    if (comparator(type_cast<T>(reference_segment->operator[](chunk_offset)), type_cast<T>(search_value))) {
+                        pos_list->push_back(RowID{chunk_id, chunk_offset});
+                    }
+                }
+
             } else {
-                //TODO reference segment
+                Fail("unknown segment type");
             }
         }
 
