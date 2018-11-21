@@ -99,6 +99,8 @@ class TableScan : public AbstractOperator {
         const auto search_value = table_scan.search_value();
         auto pos_list = std::make_shared<PosList>();
 
+        bool reference_segment_processed = false;
+
         for (ChunkID chunk_id{0}; chunk_id < input_table->chunk_count(); chunk_id++) {
             const Chunk& chunk = input_table->get_chunk(chunk_id);
             const std::shared_ptr<BaseSegment> segment = chunk.get_segment(column_id);
@@ -142,10 +144,14 @@ class TableScan : public AbstractOperator {
                     }
                 }
             } else if (std::dynamic_pointer_cast<ReferenceSegment>(segment) != nullptr) {
+                DebugAssert(chunk_id == 0, "there should always be only 1 chunk for reference segments");
+                reference_segment_processed = true;
                 const auto reference_segment = std::static_pointer_cast<ReferenceSegment>(segment);
+                const auto old_pos_list = reference_segment->pos_list();
+
                 for (ChunkOffset chunk_offset{0}; chunk_offset < reference_segment->size();chunk_offset++) {
                     if (comparator(type_cast<T>(reference_segment->operator[](chunk_offset)), type_cast<T>(search_value))) {
-                        pos_list->push_back(RowID{chunk_id, chunk_offset});
+                        pos_list->push_back(old_pos_list->operator[](chunk_offset));
                     }
                 }
 
@@ -159,8 +165,16 @@ class TableScan : public AbstractOperator {
         for (ColumnID col_id{0};col_id < input_table->column_count();col_id++) {
             result_table->add_column(input_table->column_name(col_id), input_table->column_type(col_id));
 
-            const auto segment = std::make_shared<ReferenceSegment>(input_table, col_id, pos_list);
-            chunk.add_segment(segment);
+            if (reference_segment_processed) {
+                //a reference segment always only references one table, thus we can use the second input_left()
+                const auto segment = std::make_shared<ReferenceSegment>(table_scan.input_left()->input_left()->get_output(), col_id, pos_list);
+                chunk.add_segment(segment);
+            } else {
+                const auto segment = std::make_shared<ReferenceSegment>(input_table, col_id, pos_list);
+                chunk.add_segment(segment);
+            }
+
+
         }
 
         result_table->emplace_chunk(std::move(chunk));
