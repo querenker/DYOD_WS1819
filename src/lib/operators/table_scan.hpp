@@ -9,6 +9,7 @@
 #include "all_type_variant.hpp"
 #include "storage/chunk.hpp"
 #include "storage/dictionary_segment.hpp"
+#include "storage/reference_segment.hpp"
 #include "storage/table.hpp"
 #include "storage/value_segment.hpp"
 #include "types.hpp"
@@ -19,30 +20,25 @@ namespace opossum {
 class Table;
 
 class TableScan : public AbstractOperator {
- public:
-  TableScan(const std::shared_ptr<const AbstractOperator> in, ColumnID column_id, const ScanType scan_type,
-            const AllTypeVariant search_value);
-
-  ~TableScan();
-
-  ColumnID column_id() const;
-  ScanType scan_type() const;
-  const AllTypeVariant& search_value() const;
 
  protected:
+    class BaseTableScanImpl {
+    public:
+        virtual ~BaseTableScanImpl() = default;
+
+
+        virtual std::shared_ptr<const Table> on_execute(const TableScan& tableScan) = 0;
+
+
+    };
   std::shared_ptr<const Table> _on_execute() override;
   const ColumnID _column_id;
   const ScanType _scan_type;
   const AllTypeVariant _search_value;
 
-  class BaseTableScanImpl {
-  public:
-    virtual ~BaseTableScanImpl() = default;
+  std::unique_ptr<BaseTableScanImpl> _table_scan_impl;
 
 
-    virtual std::shared_ptr<const Table> on_execute(const std::shared_ptr<const Table> in, ColumnID columnID,
-                                                    const ScanType scanType, const AllTypeVariant search_value) = 0;
-  };
 
   template <typename T>
   class TableScanImpl : public BaseTableScanImpl {
@@ -87,29 +83,33 @@ class TableScan : public AbstractOperator {
       }
 
       template <typename U>
-      void _search_within_dictionary_segment(const std::shared_ptr<const std::vector<T>>& dictionary, const std::shared_ptr<const FittedAttributeVector<U>>& attribute_vector, const AllTypeVariant& search_value, const std::function<bool (T,T)>& comparator) {
-          for (const U value : attribute_vector->values()) {
-              if (comparator(dictionary->operator[](value), type_cast<T>(search_value))) {
-                  //TODO fancy stuff with reference segment
-                  std::cout << "we need a reference segment here" << std::endl;
+      void _search_within_dictionary_segment(const std::shared_ptr<const std::vector<T>>& dictionary, const std::shared_ptr<const FittedAttributeVector<U>>& attribute_vector, const AllTypeVariant& search_value, const std::function<bool (T,T)>& comparator, const ChunkID chunk_id, std::shared_ptr<PosList>& pos_list) {
+          const auto& values = attribute_vector->values();
+          for (ChunkOffset chunk_offset{0}; chunk_offset < values.size();chunk_offset++) {
+              if (comparator(dictionary->operator[](values[chunk_offset]), type_cast<T>(search_value))) {
+                  pos_list->push_back(RowID{chunk_id, chunk_offset});
               }
           }
       }
 
-      std::shared_ptr<const Table> on_execute(const std::shared_ptr<const Table> in, ColumnID columnID,
-                                            const ScanType scanType, const AllTypeVariant search_value) override {
-        for (ChunkID chunk_id{0}; chunk_id < in->chunk_count(); chunk_id++) {
-            const Chunk& chunk = in->get_chunk(chunk_id);
-            const std::shared_ptr<BaseSegment> segment = chunk.get_segment(columnID);
-            const auto comparator = get_comparator(scanType);
+      std::shared_ptr<const Table> on_execute(const TableScan& table_scan) override {
+        const auto column_id = table_scan.column_id();
+        const auto input_table = table_scan.input_left()->get_output();
+        const auto scan_type = table_scan.scan_type();
+        const auto search_value = table_scan.search_value();
+        auto pos_list = std::make_shared<PosList>();
+
+        for (ChunkID chunk_id{0}; chunk_id < input_table->chunk_count(); chunk_id++) {
+            const Chunk& chunk = input_table->get_chunk(chunk_id);
+            const std::shared_ptr<BaseSegment> segment = chunk.get_segment(column_id);
+            const auto comparator = get_comparator(scan_type);
 
             if (std::dynamic_pointer_cast<ValueSegment<T>>(segment) != nullptr) {
                 const auto value_segment = std::static_pointer_cast<ValueSegment<T>>(segment);
-                const auto values = value_segment->values();
-                for (const auto& value : values) {
-                    if (comparator(value, type_cast<T>(search_value))) {
-                        //TODO fancy stuff with reference segment
-                        std::cout << "we need a reference segment here" << std::endl;
+                const auto& values = value_segment->values();
+                for (ChunkOffset chunk_offset{0};chunk_offset < values.size();chunk_offset++) {
+                    if (comparator(values[chunk_offset], type_cast<T>(search_value))) {
+                        pos_list->push_back(RowID{chunk_id, chunk_offset});
                     }
                 }
             } else if (std::dynamic_pointer_cast<DictionarySegment<T>>(segment) != nullptr ){
@@ -121,35 +121,55 @@ class TableScan : public AbstractOperator {
                     case sizeof(uint8_t): {
                         const auto fitted_attribute_vector = std::dynamic_pointer_cast<const FittedAttributeVector<uint8_t>>(attribute_vector);
                         DebugAssert(fitted_attribute_vector != nullptr, "cast failed");
-                        _search_within_dictionary_segment<uint8_t>(dictionary, fitted_attribute_vector, search_value, comparator);
+                        _search_within_dictionary_segment<uint8_t>(dictionary, fitted_attribute_vector, search_value, comparator, chunk_id, pos_list);
                         break;
                     }
                     case sizeof(uint16_t): {
                         const auto fitted_attribute_vector = std::dynamic_pointer_cast<const FittedAttributeVector<uint16_t>>(attribute_vector);
                         DebugAssert(fitted_attribute_vector != nullptr, "cast failed");
-                        _search_within_dictionary_segment<uint16_t>(dictionary, fitted_attribute_vector, search_value, comparator);
+                        _search_within_dictionary_segment<uint16_t>(dictionary, fitted_attribute_vector, search_value, comparator, chunk_id, pos_list);
                         break;
                     }
                     case sizeof(uint32_t): {
                         const auto fitted_attribute_vector = std::dynamic_pointer_cast<const FittedAttributeVector<uint32_t>>(attribute_vector);
                         DebugAssert(fitted_attribute_vector != nullptr, "cast failed");
-                        _search_within_dictionary_segment<uint32_t>(dictionary, fitted_attribute_vector, search_value, comparator);
+                        _search_within_dictionary_segment<uint32_t>(dictionary, fitted_attribute_vector, search_value, comparator, chunk_id, pos_list);
                         break;
                     }
-                    //TODO make sure one case is handled?
+
+                    default: {
+                        Fail("unknown attribute vector width: " + attribute_vector->width());
+                    }
                 }
             } else {
                 //TODO reference segment
             }
         }
-        return nullptr;
+
+        auto result_table = std::make_shared<Table>();
+        Chunk chunk;
+        for (ColumnID col_id{0};col_id < input_table->column_count();col_id++) {
+            result_table->add_column(input_table->column_name(col_id), input_table->column_type(col_id));
+
+            const auto segment = std::make_shared<ReferenceSegment>(input_table, col_id, pos_list);
+            chunk.add_segment(segment);
+        }
+
+        result_table->emplace_chunk(std::move(chunk));
+        return result_table;
     }
 
 
   };
+  public:
+    TableScan(const std::shared_ptr<const AbstractOperator> in, ColumnID column_id, const ScanType scan_type,
+              const AllTypeVariant search_value);
 
-  //  template <typename T>
-  //  std::unique_ptr<BaseTableScanImpl> _table_scan_impl;
+    ~TableScan();
+
+    ColumnID column_id() const;
+    ScanType scan_type() const;
+    const AllTypeVariant& search_value() const;
 };
 
 }  // namespace opossum

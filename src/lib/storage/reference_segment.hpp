@@ -26,7 +26,7 @@ class ReferenceSegment : public BaseSegment {
 
   const AllTypeVariant operator[](const size_t i) const override;
 
-  void append(const AllTypeVariant&) override { throw std::logic_error("ReferenceSegment is immutable"); };
+  void append(const AllTypeVariant&) override { Fail("ReferenceSegment is immutable"); };
 
   size_t size() const override;
 
@@ -34,6 +34,11 @@ class ReferenceSegment : public BaseSegment {
   const std::shared_ptr<const Table> referenced_table() const;
 
   ColumnID referenced_column_id() const;
+
+protected:
+    std::shared_ptr<const Table> _referenced_table;
+    ColumnID _referenced_column_id;
+    std::shared_ptr<const PosList> _pos_list;
 };
 
 }  // namespace opossum

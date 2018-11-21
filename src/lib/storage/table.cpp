@@ -98,19 +98,34 @@ const Chunk& Table::get_chunk(ChunkID chunk_id) const {
 }
 
 void Table::compress_chunk(ChunkID chunk_id) {
+  std::cout << "compress_chunk start" << std::endl;
   DebugAssert(chunk_id < _chunks.size(), "invalid chunk id");
   const auto chunk = _chunks[chunk_id];
   auto new_chunk = std::make_shared<Chunk>();
-  for (ColumnID column_id = ColumnID{0}; column_id < chunk->size(); column_id++) {
+  std::cout << "compress_chunk middle" << std::endl;
+  for (ColumnID column_id = ColumnID{0}; column_id < chunk->column_count(); column_id++) {
     auto dictionary_segment =
         make_shared_by_data_type<BaseSegment, DictionarySegment>(column_type(column_id), chunk->get_segment(column_id));
     new_chunk->add_segment(dictionary_segment);
   }
   _chunks[chunk_id] = new_chunk;
+  std::cout << "compress_chunk end" << std::endl;
 }
 
-void emplace_chunk(Chunk chunk) {
-  // Implementation goes here
+void Table::emplace_chunk(Chunk&& chunk) {
+  DebugAssert(chunk.size() <= _chunk_size, "chunk is too big");
+  //TODO should we check data types as well?
+  DebugAssert(chunk.column_count() == column_count(), "chunk column count does not match");
+
+  //TODO multithreading?
+  if (row_count() == 0) {
+    _chunks[0] = std::make_shared<Chunk>(std::move(chunk));
+    return;
+  }
+
+  //TODO do we need this assert?
+  DebugAssert(_chunks.back()->size() == _chunk_size, "last chunk is not full");
+  _chunks.emplace_back(std::make_shared<Chunk>(std::move(chunk)));
 }
 
 }  // namespace opossum
