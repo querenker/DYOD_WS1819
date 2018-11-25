@@ -10,12 +10,18 @@ namespace opossum {
 
 class StorageFittedAttributeVectorTest : public BaseTest {
  protected:
-  std::shared_ptr<BaseAttributeVector> vector = std::make_shared<FittedAttributeVector<uint8_t>>(2);
+
+  std::shared_ptr<BaseAttributeVector> vector = std::make_shared<FittedAttributeVector<uint8_t>>(std::vector<uint8_t>{3, 4});
 };
 
 TEST_F(StorageFittedAttributeVectorTest, Size) { EXPECT_EQ(vector->size(), 2u); }
 
-TEST_F(StorageFittedAttributeVectorTest, GetSet) {
+TEST_F(StorageFittedAttributeVectorTest, Get) {
+  EXPECT_EQ(vector->get(ColumnID{0}), 3u);
+  EXPECT_EQ(vector->get(ColumnID{1}), 4u);
+}
+
+TEST_F(StorageFittedAttributeVectorTest, Set) {
   vector->set(ColumnID{0}, ValueID{42u});
   vector->set(ColumnID{1}, ValueID{7u});
   EXPECT_EQ(vector->get(ColumnID{0}), 42u);
@@ -34,10 +40,10 @@ TEST_F(StorageFittedAttributeVectorTest, GetSetInvalidValues) {
 TEST_F(StorageFittedAttributeVectorTest, Width) {
   EXPECT_EQ(vector->width(), 1u);
 
-  vector = std::make_shared<FittedAttributeVector<uint16_t>>(2);
+  vector = std::make_shared<FittedAttributeVector<uint16_t>>(std::vector<uint16_t>{42,43});
   EXPECT_EQ(vector->width(), 2u);
 
-  vector = std::make_shared<FittedAttributeVector<uint32_t>>(2);
+  vector = std::make_shared<FittedAttributeVector<uint32_t>>(std::vector<uint32_t>{44, 45});
   EXPECT_EQ(vector->width(), 4u);
 }
 

@@ -52,20 +52,26 @@ class DictionarySegment : public BaseSegment {
 
     // initialize attribute vector
     if (num_unique_elements <= std::numeric_limits<uint8_t>::max()) {
-      _attribute_vector = std::make_shared<FittedAttributeVector<uint8_t>>(base_segment->size());
+      _initialize_attribute_vector<uint8_t>(value_segment, unique_values);
     } else if (num_unique_elements <= std::numeric_limits<uint16_t>::max()) {
-      _attribute_vector = std::make_shared<FittedAttributeVector<uint16_t>>(base_segment->size());
+      _initialize_attribute_vector<uint16_t>(value_segment, unique_values);
     } else if (num_unique_elements <= std::numeric_limits<uint32_t>::max()) {
-      _attribute_vector = std::make_shared<FittedAttributeVector<uint32_t>>(base_segment->size());
+      _initialize_attribute_vector<uint32_t>(value_segment, unique_values);
     }
+  }
 
-    ChunkOffset offset{0};
+  template <typename S>
+  void _initialize_attribute_vector(const std::shared_ptr<ValueSegment<T>>& value_segment, const std::set<T>& unique_values) {
+    std::vector<S> attributes;
+    attributes.reserve(value_segment->size());
+
     for (const auto& value : value_segment->values()) {
       const auto set_pos = static_cast<ValueID>(std::distance(unique_values.cbegin(), unique_values.find(value)));
-      DebugAssert(set_pos < num_unique_elements,
+      DebugAssert(set_pos < unique_values.size(),
                   "The value " + type_cast<std::string>(value) + " is not in the dictionary");
-      _attribute_vector->set(offset++, set_pos);
+      attributes.push_back(set_pos);
     }
+    _attribute_vector = std::make_shared<FittedAttributeVector<S>>(std::move(attributes));
   }
 
   // SEMINAR INFORMATION: Since most of these methods depend on the template parameter, you will have to implement

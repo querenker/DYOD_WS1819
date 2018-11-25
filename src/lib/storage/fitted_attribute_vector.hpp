@@ -1,6 +1,7 @@
 #pragma once
 
 #include <limits>
+#include <utility>
 #include <vector>
 
 #include "base_attribute_vector.hpp"
@@ -11,7 +12,7 @@ namespace opossum {
 template <typename T>
 class FittedAttributeVector : public BaseAttributeVector {
  public:
-  explicit FittedAttributeVector(const ChunkOffset num_elements) { _values.resize(num_elements); }
+  explicit FittedAttributeVector(std::vector<T>&& values) : _values(std::move(values)) {}
   ~FittedAttributeVector() = default;
 
   ValueID get(const size_t offset) const override {
