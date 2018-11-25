@@ -1,5 +1,9 @@
 #include "get_table.hpp"
-#include "../storage/storage_manager.hpp"
+
+#include <memory>
+#include <string>
+
+#include "storage/storage_manager.hpp"
 
 namespace opossum {
 

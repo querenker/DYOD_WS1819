@@ -1,9 +1,12 @@
 #include "table_scan.hpp"
+
+#include <memory>
+#include <string>
+
 #include "../resolve_type.hpp"
 #include "../storage/table.hpp"
 
 namespace opossum {
-
 
 TableScan::TableScan(const std::shared_ptr<const AbstractOperator> in, ColumnID column_id, const ScanType scan_type,
                      const AllTypeVariant search_value)
@@ -20,8 +23,6 @@ ScanType TableScan::scan_type() const { return _scan_type; }
 
 const AllTypeVariant& TableScan::search_value() const { return _search_value; }
 
-std::shared_ptr<const Table> TableScan::_on_execute() {
-  return _table_scan_impl->on_execute(*this);
-}
+std::shared_ptr<const Table> TableScan::_on_execute() { return _table_scan_impl->on_execute(*this); }
 
 }  // namespace opossum

@@ -27,7 +27,7 @@ void StorageManager::drop_table(const std::string& name) {
 
 std::shared_ptr<Table> StorageManager::get_table(const std::string& name) const { return _tables.at(name); }
 
-bool StorageManager::has_table(const std::string& name) const { return _tables.find(name) != _tables.end(); }
+bool StorageManager::has_table(const std::string& name) const { return _tables.find(name) != _tables.cend(); }
 
 std::vector<std::string> StorageManager::table_names() const {
   auto table_names = std::vector<std::string>(_tables.size());
