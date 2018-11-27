@@ -1,5 +1,6 @@
 #include <limits>
 #include <memory>
+#include <vector>
 
 #include "../base_test.hpp"
 #include "gtest/gtest.h"
@@ -10,8 +11,8 @@ namespace opossum {
 
 class StorageFittedAttributeVectorTest : public BaseTest {
  protected:
-
-  std::shared_ptr<BaseAttributeVector> vector = std::make_shared<FittedAttributeVector<uint8_t>>(std::vector<uint8_t>{3, 4});
+  std::shared_ptr<BaseAttributeVector> vector =
+      std::make_shared<FittedAttributeVector<uint8_t>>(std::vector<uint8_t>{3, 4});
 };
 
 TEST_F(StorageFittedAttributeVectorTest, Size) { EXPECT_EQ(vector->size(), 2u); }
@@ -40,7 +41,7 @@ TEST_F(StorageFittedAttributeVectorTest, GetSetInvalidValues) {
 TEST_F(StorageFittedAttributeVectorTest, Width) {
   EXPECT_EQ(vector->width(), 1u);
 
-  vector = std::make_shared<FittedAttributeVector<uint16_t>>(std::vector<uint16_t>{42,43});
+  vector = std::make_shared<FittedAttributeVector<uint16_t>>(std::vector<uint16_t>{42, 43});
   EXPECT_EQ(vector->width(), 2u);
 
   vector = std::make_shared<FittedAttributeVector<uint32_t>>(std::vector<uint32_t>{44, 45});

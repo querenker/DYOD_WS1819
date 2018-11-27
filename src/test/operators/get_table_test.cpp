@@ -20,9 +20,9 @@ class OperatorsGetTableTest : public BaseTest {
 };
 
 TEST_F(OperatorsGetTableTest, TableName) {
-    auto gt = std::make_shared<GetTable>("aNiceTestTable");
-    gt->execute();
-    EXPECT_EQ(gt->table_name(), "aNiceTestTable");
+  auto gt = std::make_shared<GetTable>("aNiceTestTable");
+  gt->execute();
+  EXPECT_EQ(gt->table_name(), "aNiceTestTable");
 }
 
 TEST_F(OperatorsGetTableTest, GetOutput) {

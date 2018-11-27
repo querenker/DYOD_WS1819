@@ -126,19 +126,19 @@ void Table::compress_chunk(ChunkID chunk_id) {
 }
 
 void Table::_emplace_chunk_without_locking(Chunk&& chunk) {
-      DebugAssert(chunk.size() <= _chunk_size, "chunk is too big");
-      // TODO(anyone) should we check data types as well?
-      DebugAssert(chunk.column_count() == column_count(), "chunk column count does not match");
+  DebugAssert(chunk.size() <= _chunk_size, "chunk is too big");
+  // TODO(anyone) should we check data types as well?
+  DebugAssert(chunk.column_count() == column_count(), "chunk column count does not match");
 
-      if (row_count() == 0) {
-        _chunks[0] = std::make_shared<Chunk>(std::move(chunk));
-        return;
-      }
+  if (row_count() == 0) {
+    _chunks[0] = std::make_shared<Chunk>(std::move(chunk));
+    return;
+  }
 
-      // TODO(anyone) do we need this assert?
-      DebugAssert(_chunks.back()->size() == _chunk_size, "last chunk is not full");
-      _chunks.emplace_back(std::make_shared<Chunk>(std::move(chunk)));
-    }
+  // TODO(anyone) do we need this assert?
+  DebugAssert(_chunks.back()->size() == _chunk_size, "last chunk is not full");
+  _chunks.emplace_back(std::make_shared<Chunk>(std::move(chunk)));
+}
 
 void Table::emplace_chunk(Chunk&& chunk) {
   std::lock_guard lock(_chunk_mutex);

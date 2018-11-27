@@ -61,7 +61,8 @@ class DictionarySegment : public BaseSegment {
   }
 
   template <typename S>
-  void _initialize_attribute_vector(const std::shared_ptr<ValueSegment<T>>& value_segment, const std::set<T>& unique_values) {
+  void _initialize_attribute_vector(const std::shared_ptr<ValueSegment<T>>& value_segment,
+                                    const std::set<T>& unique_values) {
     std::vector<S> attributes;
     attributes.reserve(value_segment->size());
 

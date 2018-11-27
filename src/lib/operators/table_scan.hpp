@@ -41,7 +41,6 @@ class TableScan : public AbstractOperator {
     ~TableScanImpl() = default;
 
    protected:
-
     template <typename S>
     std::function<bool(S, S)> get_comparator(ScanType scanType) {
       std::function<bool(S, S)> result;
@@ -106,7 +105,9 @@ class TableScan : public AbstractOperator {
     }
 
     template <typename S>
-    void _search_within_vector(const std::vector<S>& values, const S& search_value, std::function<bool(S,S)> comparator, const ChunkID chunk_id, std::shared_ptr<PosList>& pos_list) {
+    void _search_within_vector(const std::vector<S>& values, const S& search_value,
+                               std::function<bool(S, S)> comparator, const ChunkID chunk_id,
+                               std::shared_ptr<PosList>& pos_list) {
       for (ChunkOffset chunk_offset{0}; chunk_offset < values.size(); chunk_offset++) {
         if (comparator(values[chunk_offset], search_value)) {
           pos_list->push_back(RowID{chunk_id, chunk_offset});
@@ -118,9 +119,7 @@ class TableScan : public AbstractOperator {
     void _search_within_dictionary_segment(const std::shared_ptr<const FittedAttributeVector<U>>& attribute_vector,
                                            const ScanType scan_type, const ChunkID chunk_id,
                                            const ValueID search_value_lower_bound,
-                                           const ValueID search_value_upper_bound,
-                                           std::shared_ptr<PosList>& pos_list) {
-
+                                           const ValueID search_value_upper_bound, std::shared_ptr<PosList>& pos_list) {
       const std::vector<U>& values = attribute_vector->values();
 
       if (scan_type == ScanType::OpEquals && search_value_lower_bound == search_value_upper_bound) {
@@ -132,7 +131,8 @@ class TableScan : public AbstractOperator {
         return;
       }
 
-      const auto new_search_values = search_values_for_reference_segment(scan_type, search_value_lower_bound, search_value_upper_bound);
+      const auto new_search_values =
+          search_values_for_reference_segment(scan_type, search_value_lower_bound, search_value_upper_bound);
       const auto comparator = get_comparator<U>(new_search_values.first);
       const U new_search_value = static_cast<U>(new_search_values.second);
       _search_within_vector(values, new_search_value, comparator, chunk_id, pos_list);
@@ -169,24 +169,24 @@ class TableScan : public AbstractOperator {
               const auto fitted_attribute_vector =
                   std::static_pointer_cast<const FittedAttributeVector<uint8_t>>(attribute_vector);
               DebugAssert(fitted_attribute_vector != nullptr, "cast failed");
-              _search_within_dictionary_segment<uint8_t>(fitted_attribute_vector, scan_type,
-                                                         chunk_id, lower_bound, upper_bound, pos_list);
+              _search_within_dictionary_segment<uint8_t>(fitted_attribute_vector, scan_type, chunk_id, lower_bound,
+                                                         upper_bound, pos_list);
               break;
             }
             case sizeof(uint16_t): {
               const auto fitted_attribute_vector =
                   std::static_pointer_cast<const FittedAttributeVector<uint16_t>>(attribute_vector);
               DebugAssert(fitted_attribute_vector != nullptr, "cast failed");
-              _search_within_dictionary_segment<uint16_t>(fitted_attribute_vector, scan_type,
-                                                          chunk_id, lower_bound, upper_bound, pos_list);
+              _search_within_dictionary_segment<uint16_t>(fitted_attribute_vector, scan_type, chunk_id, lower_bound,
+                                                          upper_bound, pos_list);
               break;
             }
             case sizeof(uint32_t): {
               const auto fitted_attribute_vector =
                   std::static_pointer_cast<const FittedAttributeVector<uint32_t>>(attribute_vector);
               DebugAssert(fitted_attribute_vector != nullptr, "cast failed");
-              _search_within_dictionary_segment<uint32_t>(fitted_attribute_vector, scan_type,
-                                                          chunk_id, lower_bound, upper_bound, pos_list);
+              _search_within_dictionary_segment<uint32_t>(fitted_attribute_vector, scan_type, chunk_id, lower_bound,
+                                                          upper_bound, pos_list);
               break;
             }
 
