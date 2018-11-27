@@ -105,5 +105,9 @@ class Table : private Noncopyable {
 
   // adds an empty segment of given type to given chunk
   void _add_segment_to_chunk(std::shared_ptr<Chunk> chunk, const std::string& type);
+
+  template <typename T>
+  static Chunk& _get_chunk_impl(T& self, ChunkID chunk_id);
+
 };
 }  // namespace opossum
