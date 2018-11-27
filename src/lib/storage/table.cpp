@@ -20,7 +20,7 @@ namespace opossum {
 
 Table::Table(const uint32_t chunk_size) : _chunk_size(chunk_size) {
   DebugAssert(chunk_size > 0, "chunk size must be > 0");
-  _add_new_chunk();
+  _chunks.push_back(std::make_shared<Chunk>());
 }
 
 void Table::_add_segment_to_chunk(std::shared_ptr<Chunk> chunk, const std::string& type) {
@@ -28,12 +28,10 @@ void Table::_add_segment_to_chunk(std::shared_ptr<Chunk> chunk, const std::strin
   chunk->add_segment(new_segment);
 }
 
-void Table::_add_new_chunk() {
-  auto chunk = std::make_shared<Chunk>();
+void Table::_init_chunk(std::shared_ptr<Chunk>& chunk) {
   for (const auto& column_type : _column_types) {
     _add_segment_to_chunk(chunk, column_type);
   }
-  _chunks.push_back(chunk);
 }
 
 void Table::add_column_definition(const std::string& name, const std::string& type) {
@@ -51,10 +49,15 @@ void Table::add_column(const std::string& name, const std::string& type) {
 
 void Table::append(std::vector<AllTypeVariant> values) {
   DebugAssert(_chunks.back()->size() <= _chunk_size, "chunk contains more values than allowed ");
+  std::lock_guard lock(_chunk_mutex);
   if (_chunks.back()->size() == _chunk_size) {
-    _add_new_chunk();
+    std::shared_ptr<Chunk> new_chunk = std::make_shared<Chunk>();
+    _init_chunk(new_chunk);
+    new_chunk->append(values);
+    _emplace_chunk_without_locking(std::move(*new_chunk));
+  } else {
+    _chunks.back()->append(values);
   }
-  _chunks.back()->append(values);
 }
 
 uint16_t Table::column_count() const { return _column_names.size(); }
@@ -122,20 +125,24 @@ void Table::compress_chunk(ChunkID chunk_id) {
   _chunks[chunk_id] = std::move(new_chunk);
 }
 
+void Table::_emplace_chunk_without_locking(Chunk&& chunk) {
+      DebugAssert(chunk.size() <= _chunk_size, "chunk is too big");
+      // TODO(anyone) should we check data types as well?
+      DebugAssert(chunk.column_count() == column_count(), "chunk column count does not match");
+
+      if (row_count() == 0) {
+        _chunks[0] = std::make_shared<Chunk>(std::move(chunk));
+        return;
+      }
+
+      // TODO(anyone) do we need this assert?
+      DebugAssert(_chunks.back()->size() == _chunk_size, "last chunk is not full");
+      _chunks.emplace_back(std::make_shared<Chunk>(std::move(chunk)));
+    }
+
 void Table::emplace_chunk(Chunk&& chunk) {
-  DebugAssert(chunk.size() <= _chunk_size, "chunk is too big");
-  // TODO(anyone) should we check data types as well?
-  DebugAssert(chunk.column_count() == column_count(), "chunk column count does not match");
-
-  // TODO(anyone) multithreading?
-  if (row_count() == 0) {
-    _chunks[0] = std::make_shared<Chunk>(std::move(chunk));
-    return;
-  }
-
-  // TODO(anyone) do we need this assert?
-  DebugAssert(_chunks.back()->size() == _chunk_size, "last chunk is not full");
-  _chunks.emplace_back(std::make_shared<Chunk>(std::move(chunk)));
+  std::lock_guard lock(_chunk_mutex);
+  _emplace_chunk_without_locking(std::move(chunk));
 }
 
 }  // namespace opossum

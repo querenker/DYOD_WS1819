@@ -103,8 +103,11 @@ class Table : private Noncopyable {
   // mutex to lock a chunk
   mutable std::shared_mutex _chunk_mutex;
 
+  // emplaces a chunk without locking the chunk vector
+  void _emplace_chunk_without_locking(Chunk&& chunk);
+
   // adds a new empty chunk at the end of the chunk list
-  void _add_new_chunk();
+  void _init_chunk(std::shared_ptr<Chunk>&);
 
   // adds an empty segment of given type to given chunk
   void _add_segment_to_chunk(std::shared_ptr<Chunk> chunk, const std::string& type);
