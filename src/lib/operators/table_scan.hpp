@@ -79,7 +79,9 @@ class TableScan : public AbstractOperator {
       return result;
     }
 
-    std::pair<ScanType, ValueID> tmp_function_pls_change(const ScanType scan_type, const ValueID lower_bound_id, const ValueID upper_bound_id) {
+    std::pair<ScanType, ValueID> search_values_for_reference_segment(const ScanType scan_type,
+                                                                     const ValueID lower_bound_id,
+                                                                     const ValueID upper_bound_id) {
       switch (scan_type) {
         case ScanType::OpEquals:
           return std::make_pair(ScanType::OpEquals, lower_bound_id);
@@ -130,9 +132,9 @@ class TableScan : public AbstractOperator {
         return;
       }
 
-      const auto new_scan_values = tmp_function_pls_change(scan_type, search_value_lower_bound, search_value_upper_bound);
-      const auto comparator = get_comparator<U>(new_scan_values.first);
-      const U new_search_value = static_cast<U>(new_scan_values.second);
+      const auto new_search_values = search_values_for_reference_segment(scan_type, search_value_lower_bound, search_value_upper_bound);
+      const auto comparator = get_comparator<U>(new_search_values.first);
+      const U new_search_value = static_cast<U>(new_search_values.second);
       _search_within_vector(values, new_search_value, comparator, chunk_id, pos_list);
     }
 
