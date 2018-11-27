@@ -111,6 +111,5 @@ class Table : private Noncopyable {
 
   template <typename T>
   static Chunk& _get_chunk_impl(T& self, ChunkID chunk_id);
-
 };
 }  // namespace opossum
