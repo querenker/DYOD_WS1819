@@ -103,6 +103,15 @@ class TableScan : public AbstractOperator {
       return std::make_pair(ScanType::OpEquals, INVALID_VALUE_ID);
     }
 
+    template <typename S>
+    void _search_within_vector(const std::vector<S>& values, const S& search_value, std::function<bool(S,S)> comparator, const ChunkID chunk_id, std::shared_ptr<PosList>& pos_list) {
+      for (ChunkOffset chunk_offset{0}; chunk_offset < values.size(); chunk_offset++) {
+        if (comparator(values[chunk_offset], search_value)) {
+          pos_list->push_back(RowID{chunk_id, chunk_offset});
+        }
+      }
+    }
+
     template <typename U>
     void _search_within_dictionary_segment(const std::shared_ptr<const FittedAttributeVector<U>>& attribute_vector,
                                            const ScanType scan_type, const ChunkID chunk_id,
@@ -123,12 +132,8 @@ class TableScan : public AbstractOperator {
 
       const auto new_scan_values = tmp_function_pls_change(scan_type, search_value_lower_bound, search_value_upper_bound);
       const auto comparator = get_comparator<U>(new_scan_values.first);
-      const U search_value_value_id = static_cast<U>(new_scan_values.second);
-      for (ChunkOffset chunk_offset{0}; chunk_offset < values.size(); chunk_offset++) {
-        if (comparator(values[chunk_offset], search_value_value_id)) {
-          pos_list->push_back(RowID{chunk_id, chunk_offset});
-        }
-      }
+      const U new_search_value = static_cast<U>(new_scan_values.second);
+      _search_within_vector(values, new_search_value, comparator, chunk_id, pos_list);
     }
 
     std::shared_ptr<const Table> on_execute(const TableScan& table_scan) override {
@@ -148,15 +153,11 @@ class TableScan : public AbstractOperator {
         if (std::dynamic_pointer_cast<ValueSegment<T>>(segment) != nullptr) {
           const auto value_segment = std::static_pointer_cast<ValueSegment<T>>(segment);
           const auto& values = value_segment->values();
-          for (ChunkOffset chunk_offset{0}; chunk_offset < values.size(); chunk_offset++) {
-            if (comparator(values[chunk_offset], type_cast<T>(search_value))) {
-              pos_list->push_back(RowID{chunk_id, chunk_offset});
-            }
-          }
+          const auto& casted_search_value = type_cast<T>(search_value);
+          _search_within_vector(values, casted_search_value, comparator, chunk_id, pos_list);
         } else if (std::dynamic_pointer_cast<DictionarySegment<T>>(segment) != nullptr) {
           const auto dictionary_segment = std::static_pointer_cast<DictionarySegment<T>>(segment);
           const auto attribute_vector = dictionary_segment->attribute_vector();
-          const auto dictionary = dictionary_segment->dictionary();
 
           const auto lower_bound = dictionary_segment->lower_bound(search_value);
           const auto upper_bound = dictionary_segment->upper_bound(search_value);
@@ -187,16 +188,17 @@ class TableScan : public AbstractOperator {
               break;
             }
 
-            default: { Fail("unknown attribute vector width: " + attribute_vector->width()); }
+            default: { Fail("unsupported attribute vector width: " + std::to_string(attribute_vector->width())); }
           }
         } else if (std::dynamic_pointer_cast<ReferenceSegment>(segment) != nullptr) {
           DebugAssert(chunk_id == 0, "there should always be only 1 chunk for reference segments");
           reference_segment_processed = true;
           const auto reference_segment = std::static_pointer_cast<ReferenceSegment>(segment);
           const auto old_pos_list = reference_segment->pos_list();
+          const T& casted_search_value = type_cast<T>(search_value);
 
           for (ChunkOffset chunk_offset{0}; chunk_offset < reference_segment->size(); chunk_offset++) {
-            if (comparator(type_cast<T>(reference_segment->operator[](chunk_offset)), type_cast<T>(search_value))) {
+            if (comparator(type_cast<T>(reference_segment->operator[](chunk_offset)), casted_search_value)) {
               pos_list->push_back(old_pos_list->operator[](chunk_offset));
             }
           }
