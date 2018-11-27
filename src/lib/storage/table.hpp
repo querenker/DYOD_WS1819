@@ -1,5 +1,6 @@
 #pragma once
 
+#include <limits>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -47,7 +48,7 @@ class Table : private Noncopyable {
   const Chunk& get_chunk(ChunkID chunk_id) const;
 
   // Adds a chunk to the table. If the first chunk is empty, it is replaced.
-  void emplace_chunk(Chunk chunk);
+  void emplace_chunk(Chunk&& chunk);
 
   // Returns a list of all column names.
   const std::vector<std::string>& column_names() const;
@@ -93,16 +94,25 @@ class Table : private Noncopyable {
   // maximum size of one chunk
   uint32_t _chunk_size;
 
-  // ordered list of all column names
+  // vector of all column names
   std::vector<std::string> _column_names;
 
-  // ordered list of all column types
+  // vector of all column types
   std::vector<std::string> _column_types;
 
+  // mutex to lock a chunk
+  mutable std::shared_mutex _chunk_mutex;
+
+  // emplaces a chunk without locking the chunk vector
+  void _emplace_chunk_without_locking(Chunk&& chunk);
+
   // adds a new empty chunk at the end of the chunk list
-  void add_new_chunk();
+  void _init_chunk(std::shared_ptr<Chunk>&);
 
   // adds an empty segment of given type to given chunk
-  void add_segment_to_chunk(std::shared_ptr<Chunk> chunk, const std::string& type);
+  void _add_segment_to_chunk(std::shared_ptr<Chunk> chunk, const std::string& type);
+
+  template <typename T>
+  static Chunk& _get_chunk_impl(T& self, ChunkID chunk_id);
 };
 }  // namespace opossum

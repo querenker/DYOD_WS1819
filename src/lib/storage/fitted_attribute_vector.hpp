@@ -1,16 +1,18 @@
 #pragma once
 
 #include <limits>
+#include <utility>
 #include <vector>
 
 #include "base_attribute_vector.hpp"
+#include "utils/assert.hpp"
 
 namespace opossum {
 
 template <typename T>
 class FittedAttributeVector : public BaseAttributeVector {
  public:
-  explicit FittedAttributeVector(const ChunkOffset num_elements) { _values.resize(num_elements); }
+  explicit FittedAttributeVector(std::vector<T>&& values) : _values(std::move(values)) {}
   ~FittedAttributeVector() = default;
 
   ValueID get(const size_t offset) const override {
@@ -27,6 +29,8 @@ class FittedAttributeVector : public BaseAttributeVector {
   size_t size() const override { return _values.size(); }
 
   AttributeVectorWidth width() const override { return sizeof(T); }
+
+  const std::vector<T>& values() const { return _values; }
 
  protected:
   std::vector<T> _values;
