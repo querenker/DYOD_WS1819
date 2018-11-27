@@ -41,51 +41,91 @@ class TableScan : public AbstractOperator {
     ~TableScanImpl() = default;
 
    protected:
-    std::function<bool(T, T)> get_comparator(ScanType scanType) {
-      std::function<bool(T, T)> result;
+
+    template <typename S>
+    std::function<bool(S, S)> get_comparator(ScanType scanType) {
+      std::function<bool(S, S)> result;
       switch (scanType) {
         case ScanType::OpEquals: {
-          result = [](T left, T right) { return left == right; };
+          result = [](S left, S right) { return left == right; };
           break;
         }
 
         case ScanType::OpNotEquals: {
-          result = [](T left, T right) { return left != right; };
+          result = [](S left, S right) { return left != right; };
           break;
         }
 
         case ScanType::OpLessThan: {
-          result = [](T left, T right) { return left < right; };
+          result = [](S left, S right) { return left < right; };
           break;
         }
 
         case ScanType::OpLessThanEquals: {
-          result = [](T left, T right) { return left <= right; };
+          result = [](S left, S right) { return left <= right; };
           break;
         }
 
         case ScanType::OpGreaterThan: {
-          result = [](T left, T right) { return left > right; };
+          result = [](S left, S right) { return left > right; };
           break;
         }
 
         case ScanType::OpGreaterThanEquals: {
-          result = [](T left, T right) { return left >= right; };
+          result = [](S left, S right) { return left >= right; };
           break;
         }
       }
       return result;
     }
 
+    std::pair<ScanType, ValueID> tmp_function_pls_change(const ScanType scan_type, const ValueID lower_bound_id, const ValueID upper_bound_id) {
+      switch (scan_type) {
+        case ScanType::OpEquals:
+          return std::make_pair(ScanType::OpEquals, lower_bound_id);
+
+        case ScanType::OpNotEquals:
+          return std::make_pair(ScanType::OpNotEquals, lower_bound_id);
+
+        case ScanType::OpLessThan:
+          return std::make_pair(ScanType::OpLessThan, lower_bound_id);
+
+        case ScanType::OpGreaterThan:
+          return std::make_pair(ScanType::OpGreaterThanEquals, upper_bound_id);
+
+        case ScanType::OpLessThanEquals:
+          return std::make_pair(ScanType::OpLessThan, upper_bound_id);
+
+        case ScanType::OpGreaterThanEquals:
+          return std::make_pair(ScanType::OpGreaterThanEquals, lower_bound_id);
+      }
+      Fail("unknown operator type");
+      return std::make_pair(ScanType::OpEquals, INVALID_VALUE_ID);
+    }
+
     template <typename U>
-    void _search_within_dictionary_segment(const std::shared_ptr<const std::vector<T>>& dictionary,
-                                           const std::shared_ptr<const FittedAttributeVector<U>>& attribute_vector,
-                                           const AllTypeVariant& search_value,
-                                           const std::function<bool(T, T)>& comparator, const ChunkID chunk_id,
+    void _search_within_dictionary_segment(const std::shared_ptr<const FittedAttributeVector<U>>& attribute_vector,
+                                           const ScanType scan_type, const ChunkID chunk_id,
+                                           const ValueID search_value_lower_bound,
+                                           const ValueID search_value_upper_bound,
                                            std::shared_ptr<PosList>& pos_list) {
-      const auto& values = attribute_vector->values();
+
+      const std::vector<U>& values = attribute_vector->values();
+
+      if (scan_type == ScanType::OpEquals && search_value_lower_bound == search_value_upper_bound) {
+        return;
+      } else if (scan_type == ScanType::OpNotEquals && search_value_lower_bound == search_value_upper_bound) {
+        for (ChunkOffset chunk_offset{0}; chunk_offset < values.size(); chunk_offset++) {
+          pos_list->push_back(RowID{chunk_id, chunk_offset});
+        }
+        return;
+      }
+
+      const auto new_scan_values = tmp_function_pls_change(scan_type, search_value_lower_bound, search_value_upper_bound);
+      const auto comparator = get_comparator<U>(new_scan_values.first);
+      const U search_value_value_id = static_cast<U>(new_scan_values.second);
       for (ChunkOffset chunk_offset{0}; chunk_offset < values.size(); chunk_offset++) {
-        if (comparator(dictionary->operator[](values[chunk_offset]), type_cast<T>(search_value))) {
+        if (comparator(values[chunk_offset], search_value_value_id)) {
           pos_list->push_back(RowID{chunk_id, chunk_offset});
         }
       }
@@ -103,7 +143,7 @@ class TableScan : public AbstractOperator {
       for (ChunkID chunk_id{0}; chunk_id < input_table->chunk_count(); chunk_id++) {
         const Chunk& chunk = input_table->get_chunk(chunk_id);
         const std::shared_ptr<BaseSegment> segment = chunk.get_segment(column_id);
-        const auto comparator = get_comparator(scan_type);
+        const auto comparator = get_comparator<T>(scan_type);
 
         if (std::dynamic_pointer_cast<ValueSegment<T>>(segment) != nullptr) {
           const auto value_segment = std::static_pointer_cast<ValueSegment<T>>(segment);
@@ -118,29 +158,32 @@ class TableScan : public AbstractOperator {
           const auto attribute_vector = dictionary_segment->attribute_vector();
           const auto dictionary = dictionary_segment->dictionary();
 
+          const auto lower_bound = dictionary_segment->lower_bound(search_value);
+          const auto upper_bound = dictionary_segment->upper_bound(search_value);
+
           switch (attribute_vector->width()) {
             case sizeof(uint8_t): {
               const auto fitted_attribute_vector =
                   std::static_pointer_cast<const FittedAttributeVector<uint8_t>>(attribute_vector);
               DebugAssert(fitted_attribute_vector != nullptr, "cast failed");
-              _search_within_dictionary_segment<uint8_t>(dictionary, fitted_attribute_vector, search_value, comparator,
-                                                         chunk_id, pos_list);
+              _search_within_dictionary_segment<uint8_t>(fitted_attribute_vector, scan_type,
+                                                         chunk_id, lower_bound, upper_bound, pos_list);
               break;
             }
             case sizeof(uint16_t): {
               const auto fitted_attribute_vector =
                   std::static_pointer_cast<const FittedAttributeVector<uint16_t>>(attribute_vector);
               DebugAssert(fitted_attribute_vector != nullptr, "cast failed");
-              _search_within_dictionary_segment<uint16_t>(dictionary, fitted_attribute_vector, search_value, comparator,
-                                                          chunk_id, pos_list);
+              _search_within_dictionary_segment<uint16_t>(fitted_attribute_vector, scan_type,
+                                                          chunk_id, lower_bound, upper_bound, pos_list);
               break;
             }
             case sizeof(uint32_t): {
               const auto fitted_attribute_vector =
                   std::static_pointer_cast<const FittedAttributeVector<uint32_t>>(attribute_vector);
               DebugAssert(fitted_attribute_vector != nullptr, "cast failed");
-              _search_within_dictionary_segment<uint32_t>(dictionary, fitted_attribute_vector, search_value, comparator,
-                                                          chunk_id, pos_list);
+              _search_within_dictionary_segment<uint32_t>(fitted_attribute_vector, scan_type,
+                                                          chunk_id, lower_bound, upper_bound, pos_list);
               break;
             }
 
