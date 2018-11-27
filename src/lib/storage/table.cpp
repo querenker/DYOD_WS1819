@@ -93,6 +93,7 @@ const std::string& Table::column_type(ColumnID column_id) const { return _column
 template <class T>
 Chunk& Table::_get_chunk_impl(T& self, ChunkID chunk_id) {
   DebugAssert(chunk_id < self._chunks.size(), "invalid chunk id");
+  std::shared_lock lock(self._chunk_mutex);
   return *(self._chunks[chunk_id]);
 }
 
@@ -117,7 +118,8 @@ void Table::compress_chunk(ChunkID chunk_id) {
         make_shared_by_data_type<BaseSegment, DictionarySegment>(column_type(column_id), chunk->get_segment(column_id));
     new_chunk->add_segment(dictionary_segment);
   }
-  _chunks[chunk_id] = new_chunk;
+  std::lock_guard lock(_chunk_mutex);
+  _chunks[chunk_id] = std::move(new_chunk);
 }
 
 void Table::emplace_chunk(Chunk&& chunk) {
