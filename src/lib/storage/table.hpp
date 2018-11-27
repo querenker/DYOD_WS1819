@@ -100,10 +100,17 @@ class Table : private Noncopyable {
   // vector of all column types
   std::vector<std::string> _column_types;
 
+  // mutex to lock a chunk
+  mutable std::shared_mutex _chunk_mutex;
+
   // adds a new empty chunk at the end of the chunk list
   void _add_new_chunk();
 
   // adds an empty segment of given type to given chunk
   void _add_segment_to_chunk(std::shared_ptr<Chunk> chunk, const std::string& type);
+
+  template <typename T>
+  static Chunk& _get_chunk_impl(T& self, ChunkID chunk_id);
+
 };
 }  // namespace opossum
